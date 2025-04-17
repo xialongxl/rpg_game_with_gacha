@@ -641,7 +641,7 @@
             <div class="action-buttons">
                 <button class="wish-button" id="fight-button">战斗</button>
                 <button class="wish-button wish-button-10" id="gacha-button">抽卡 (100金币)</button>
-                <button class="wish-button wish-button-heal" id="heal-button">回血 (100金币)</button>
+                <button class="wish-button wish-button-heal" id="heal-button">回血 (10金币)</button>
             </div>
         </div>
 
@@ -1360,7 +1360,7 @@
 
         gameElements.healButton.addEventListener('click', () => {
             if (player.gold < 10) {
-                log('金币不足，无法回血！需要100金币');
+                log('金币不足，无法回血！需要10金币');
                 return;
             }
 
