@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>幻想RPG与抽卡联动游戏（优化版）</title>
+    <title>幻想RPG与抽卡联动游戏</title>
     <style>
         * {
             margin: 0;
@@ -512,6 +512,10 @@
             border-radius: 10px;
         }
 
+        .inventory-item.glow {
+            animation: slot-glow 0.5s ease-in-out;
+        }
+
         .inventory-item-info {
             flex: 1;
         }
@@ -564,6 +568,46 @@
             animation: slot-glow 0.5s ease-in-out;
         }
 
+        /* 强化系统样式 */
+        .enhance-panel {
+            background: rgba(0, 0, 0, 0.6);
+            border-radius: 25px;
+            padding: 20px;
+            margin: 30px auto;
+            max-width: 600px;
+            box-shadow: 0 10px 20px rgba(0, 195, 255, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .enhance-header {
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+        }
+
+        .enhance-list {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .enhance-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 10px;
+        }
+
+        .enhance-item-info {
+            flex: 1;
+        }
+
+        .enhance-item-actions {
+            display: flex;
+            gap: 10px;
+        }
+
         @keyframes slot-glow {
             0% { box-shadow: 0 0 10px rgba(255, 215, 0, 0.5); }
             50% { box-shadow: 0 0 20px rgba(255, 215, 0, 1); }
@@ -599,12 +643,15 @@
             background: linear-gradient(135deg, #2196f3 0%, #1976d2 100%);
         }
 
+        .enhance-button {
+            background: linear-gradient(135deg, #ffeb3b 0%, #f57c00 100%);
+        }
+
         .action-button:hover {
             transform: scale(1.05);
             box-shadow: 0 5px 10px rgba(0, 0, 0, 0.3);
         }
 
-        /* 闪烁动画 */
         .blink {
             animation: blink 0.5s ease-in-out 2;
         }
@@ -665,6 +712,12 @@
             <div class="inventory-list" id="inventory-list"></div>
         </div>
 
+        <!-- 强化系统面板 -->
+        <div class="enhance-panel">
+            <div class="enhance-header">强化系统</div>
+            <div class="enhance-list" id="enhance-list"></div>
+        </div>
+
         <!-- 抽卡模拟器统计面板 -->
         <div class="stats-panel">
             <div class="pity-counter">
@@ -695,8 +748,9 @@
         <img class="effect-content" src="https://static.wikia.nocookie.net/to-aru-majutsu-no-index/images/1/12/Pentagram-GreatGold.png" alt="Wish Effect">
     </div>
 
+    <script src="enhanceSystem.js"></script>
     <script>
-        // 抽卡模拟器代码（保持不变）
+        // 抽卡模拟器代码
         const weaponTypes = {
             "单手剑": ["之刃", "短剑", "魔剑", "光刃", "邪刃", "圣剑", "灵剑"],
             "双手剑": ["巨剑", "重剑", "斩龙剑", "破军剑", "霸者剑"],
@@ -839,7 +893,9 @@
                 name: name,
                 type: type,
                 rarity: rarity,
-                description: desc
+                description: desc,
+                enhanceLevel: 0,
+                maxEnhanceLevel: 10
             };
         }
 
@@ -911,28 +967,6 @@
             }, 3000);
         }
 
-        elements.btnSingle.addEventListener('click', () => {
-            wishAnimation(1, (results) => {
-                results.forEach((weapon) => {
-                    const newWeapon = displayWeapon(weapon);
-                    addToInventory(newWeapon);
-                });
-                updateStats();
-            });
-        });
-
-        elements.btnMulti.addEventListener('click', () => {
-            wishAnimation(10, (results) => {
-                results.forEach((weapon, i) => {
-                    setTimeout(() => {
-                        const newWeapon = displayWeapon(weapon);
-                        addToInventory(newWeapon);
-                    }, i * 150);
-                });
-                updateStats();
-            });
-        });
-
         function createParticles() {
             const particleBg = document.getElementById('particle-bg');
             for (let i = 0; i < 50; i++) {
@@ -958,11 +992,7 @@
             };
         }
 
-        preloadImage('https://static.wikia.nocookie.net/to-aru-majutsu-no-index/images/1/12/Pentagram-GreatGold.png');
-        createParticles();
-        updateStats();
-
-        // RPG游戏逻辑（优化版）
+        // RPG游戏逻辑
         let player = {
             level: 1,
             exp: 0,
@@ -988,6 +1018,7 @@
 
         let battleCount = 0;
         let isFighting = false;
+        let autoFightInterval = null;
 
         const gameElements = {
             playerLevel: document.getElementById('player-level'),
@@ -1009,7 +1040,8 @@
             inventoryList: document.getElementById('inventory-list'),
             mainHandSlot: document.getElementById('main-hand-slot'),
             offHandSlot: document.getElementById('off-hand-slot'),
-            accessorySlot: document.getElementById('accessory-slot')
+            accessorySlot: document.getElementById('accessory-slot'),
+            enhanceList: document.getElementById('enhance-list')
         };
 
         function updateGameUI() {
@@ -1027,9 +1059,10 @@
             gameElements.inventoryCount.textContent = player.inventory.length;
 
             gameElements.gachaButton.disabled = player.gold < 100 || isFighting;
-            gameElements.healButton.disabled = player.gold < 100 || player.hp >= player.maxHp || isFighting;
-
+            gameElements.healButton.disabled = player.gold < 10 || player.hp >= player.maxHp || isFighting;
+            gameElements.fightButton.disabled = isFighting;
             updateEquipmentUI();
+            updateEnhanceUI(player, gameElements);
         }
 
         function log(message) {
@@ -1037,16 +1070,15 @@
             gameElements.battleLog.scrollTop = gameElements.battleLog.scrollHeight;
         }
 
-        // 装备栏UI更新
         function updateEquipmentUI() {
-            // 主手
             if (player.equipment.mainHand) {
                 const weapon = player.equipment.mainHand;
+                const enhanceText = weapon.enhanceLevel > 0 ? `+${weapon.enhanceLevel}` : '';
                 gameElements.mainHandSlot.innerHTML = `
                     <div class="equipment-slot-info">
                         主手: 
                         <img src="${weaponImages[weapon.type]}" class="equipment-slot-icon">
-                        ${weapon.name} (${weapon.type}, ${weapon.rarity}★)
+                        ${weapon.name} ${enhanceText} (${weapon.type}, ${weapon.rarity}★)
                     </div>
                     <button class="action-button unequip-button" data-slot="mainHand">卸下</button>
                 `;
@@ -1054,14 +1086,14 @@
                 gameElements.mainHandSlot.innerHTML = '<div class="equipment-slot-info">主手: 无装备</div>';
             }
 
-            // 副手
             if (player.equipment.offHand) {
                 const weapon = player.equipment.offHand;
+                const enhanceText = weapon.enhanceLevel > 0 ? `+${weapon.enhanceLevel}` : '';
                 gameElements.offHandSlot.innerHTML = `
                     <div class="equipment-slot-info">
                         副手: 
                         <img src="${weaponImages[weapon.type]}" class="equipment-slot-icon">
-                        ${weapon.name} (${weapon.type}, ${weapon.rarity}★)
+                        ${weapon.name} ${enhanceText} (${weapon.type}, ${weapon.rarity}★)
                     </div>
                     <button class="action-button unequip-button" data-slot="offHand">卸下</button>
                 `;
@@ -1069,14 +1101,14 @@
                 gameElements.offHandSlot.innerHTML = '<div class="equipment-slot-info">副手: 无装备</div>';
             }
 
-            // 饰品
             if (player.equipment.accessory) {
                 const weapon = player.equipment.accessory;
+                const enhanceText = weapon.enhanceLevel > 0 ? `+${weapon.enhanceLevel}` : '';
                 gameElements.accessorySlot.innerHTML = `
                     <div class="equipment-slot-info">
                         饰品: 
                         <img src="${weaponImages[weapon.type]}" class="equipment-slot-icon">
-                        ${weapon.name} (${weapon.type}, ${weapon.rarity}★)
+                        ${weapon.name} ${enhanceText} (${weapon.type}, ${weapon.rarity}★)
                     </div>
                     <button class="action-button unequip-button" data-slot="accessory">卸下</button>
                 `;
@@ -1084,16 +1116,17 @@
                 gameElements.accessorySlot.innerHTML = '<div class="equipment-slot-info">饰品: 无装备</div>';
             }
 
-            // 绑定卸下按钮
             document.querySelectorAll('.unequip-button').forEach(button => {
-                button.addEventListener('click', (e) => {
-                    const slot = e.target.getAttribute('data-slot');
-                    unequipWeapon(slot);
-                });
+                button.removeEventListener('click', handleUnequip); // 防止重复绑定
+                button.addEventListener('click', handleUnequip);
             });
         }
 
-        // 背包系统
+        function handleUnequip(e) {
+            const slot = e.target.getAttribute('data-slot');
+            unequipWeapon(slot);
+        }
+
         function addToInventory(weapon) {
             if (player.inventory.length >= player.inventoryCapacity) {
                 log('背包已满！请出售或丢弃武器以腾出空间');
@@ -1104,6 +1137,7 @@
             player.inventory.push(weapon);
             log(`获得武器 "${weapon.name}" (${weapon.rarity}★)，已存入背包`);
             updateInventoryUI();
+            updateEnhanceUI(player, gameElements);
             updateGameUI();
         }
 
@@ -1114,8 +1148,9 @@
                 itemDiv.className = 'inventory-item';
                 const canEquipMainHand = ['单手剑', '双手剑', '法杖', '弓', '魔法书', '匕首'].includes(weapon.type);
                 const canEquipOffHand = ['盾牌', '匕首'].includes(weapon.type);
+                const enhanceText = weapon.enhanceLevel > 0 ? `+${weapon.enhanceLevel}` : '';
                 itemDiv.innerHTML = `
-                    <div class="inventory-item-info">${weapon.name} (${weapon.type}, ${weapon.rarity}★)</div>
+                    <div class="inventory-item-info">${weapon.name} ${enhanceText} (${weapon.type}, ${weapon.rarity}★)</div>
                     <div class="inventory-item-actions">
                         ${canEquipMainHand ? `<button class="action-button equip-main-hand-button" data-index="${index}" data-slot="mainHand">装备主手</button>` : ''}
                         ${canEquipOffHand ? `<button class="action-button equip-off-hand-button" data-index="${index}" data-slot="offHand">装备副手</button>` : ''}
@@ -1127,27 +1162,77 @@
             });
 
             document.querySelectorAll('.equip-main-hand-button, .equip-off-hand-button, .equip-accessory-button').forEach(button => {
-                button.addEventListener('click', (e) => {
-                    const index = parseInt(e.target.getAttribute('data-index'));
-                    const slot = e.target.getAttribute('data-slot');
-                    equipWeapon(index, slot);
-                });
+                button.removeEventListener('click', handleEquip); // 防止重复绑定
+                button.addEventListener('click', handleEquip);
             });
 
             document.querySelectorAll('.sell-button').forEach(button => {
-                button.addEventListener('click', (e) => {
-                    const index = parseInt(e.target.getAttribute('data-index'));
-                    sellWeapon(index);
-                });
+                button.removeEventListener('click', handleSell); // 防止重复绑定
+                button.addEventListener('click', handleSell);
             });
         }
 
-        // 装备系统
+        function handleEquip(e) {
+            const index = parseInt(e.target.getAttribute('data-index'));
+            const slot = e.target.getAttribute('data-slot');
+            equipWeapon(index, slot);
+        }
+
+        function handleSell(e) {
+            const index = parseInt(e.target.getAttribute('data-index'));
+            sellWeapon(index);
+        }
+
+        function updateEquippedWeaponStats(weapon) {
+            const canEquipMainHand = ['单手剑', '双手剑', '法杖', '弓', '魔法书', '匕首'].includes(weapon.type);
+            const canEquipOffHand = ['盾牌', '匕首'].includes(weapon.type);
+
+            let slot = null;
+            if (player.equipment.mainHand === weapon) slot = 'mainHand';
+            else if (player.equipment.offHand === weapon) slot = 'offHand';
+            else if (player.equipment.accessory === weapon) slot = 'accessory';
+
+            if (!slot) return;
+
+            let oldAttackBonus = 0, oldDefenseBonus = 0, oldHpBonus = 0;
+            if (slot === 'mainHand') {
+                oldAttackBonus = weapon.rarity * 10 + (weapon.enhanceLevel > 0 ? weapon.rarity * (weapon.enhanceLevel - 1) * 2 : 0);
+                player.attack -= oldAttackBonus;
+            } else if (slot === 'offHand') {
+                oldDefenseBonus = weapon.rarity * 5 + (weapon.enhanceLevel > 0 ? weapon.rarity * (weapon.enhanceLevel - 1) : 0);
+                player.defense -= oldDefenseBonus;
+            } else if (slot === 'accessory') {
+                oldHpBonus = weapon.rarity * 20 + (weapon.enhanceLevel > 0 ? weapon.rarity * (weapon.enhanceLevel - 1) * 5 : 0);
+                player.maxHp -= oldHpBonus;
+                player.hp = Math.min(player.hp, player.maxHp);
+            }
+
+            if (slot === 'mainHand') {
+                const attackBonus = weapon.rarity * 10 + (weapon.enhanceLevel > 0 ? weapon.rarity * weapon.enhanceLevel * 2 : 0);
+                player.attack += attackBonus;
+                gameElements.playerAttack.classList.add('blink');
+            } else if (slot === 'offHand') {
+                const defenseBonus = weapon.rarity * 5 + (weapon.enhanceLevel > 0 ? weapon.rarity * weapon.enhanceLevel : 0);
+                player.defense += defenseBonus;
+                gameElements.playerDefense.classList.add('blink');
+            } else if (slot === 'accessory') {
+                const hpBonus = weapon.rarity * 20 + (weapon.enhanceLevel > 0 ? weapon.rarity * weapon.enhanceLevel * 5 : 0);
+                player.maxHp += hpBonus;
+                player.hp = Math.min(player.hp, player.maxHp);
+                gameElements.playerMaxHp.classList.add('blink');
+                gameElements.playerHp.classList.add('blink');
+            }
+
+            player.attack = Math.max(0, player.attack);
+            player.defense = Math.max(0, player.defense);
+            player.maxHp = Math.max(1, player.maxHp);
+            player.hp = Math.max(0, player.hp);
+        }
+
         function equipWeapon(index, slot) {
             const weapon = player.inventory[index];
             if (!weapon) return;
 
-            // 如果该槽位已有装备，先卸下
             if (player.equipment[slot]) {
                 const oldWeapon = player.equipment[slot];
                 if (player.inventory.length >= player.inventoryCapacity) {
@@ -1163,17 +1248,17 @@
                 }
 
                 if (slot === 'mainHand') {
-                    const attackBonus = oldWeapon.rarity * 10;
+                    const attackBonus = oldWeapon.rarity * 10 + (oldWeapon.enhanceLevel > 0 ? oldWeapon.rarity * oldWeapon.enhanceLevel * 2 : 0);
                     player.attack -= attackBonus;
                     log(`卸下主手装备 "${oldWeapon.name}"，攻击力减少 ${attackBonus}`);
                     gameElements.playerAttack.classList.add('blink');
                 } else if (slot === 'offHand') {
-                    const defenseBonus = oldWeapon.rarity * 5;
+                    const defenseBonus = oldWeapon.rarity * 5 + (oldWeapon.enhanceLevel > 0 ? oldWeapon.rarity * oldWeapon.enhanceLevel : 0);
                     player.defense -= defenseBonus;
                     log(`卸下副手装备 "${oldWeapon.name}"，防御力减少 ${defenseBonus}`);
                     gameElements.playerDefense.classList.add('blink');
                 } else if (slot === 'accessory') {
-                    const hpBonus = oldWeapon.rarity * 20;
+                    const hpBonus = oldWeapon.rarity * 20 + (oldWeapon.enhanceLevel > 0 ? oldWeapon.rarity * oldWeapon.enhanceLevel * 5 : 0);
                     player.maxHp -= hpBonus;
                     player.hp = Math.min(player.hp, player.maxHp);
                     log(`卸下饰品 "${oldWeapon.name}"，生命值上限减少 ${hpBonus}`);
@@ -1182,22 +1267,21 @@
                 }
             }
 
-            // 装备新武器
             player.equipment[slot] = weapon;
             if (slot === 'mainHand') {
-                const attackBonus = weapon.rarity * 10;
+                const attackBonus = weapon.rarity * 10 + (weapon.enhanceLevel > 0 ? weapon.rarity * weapon.enhanceLevel * 2 : 0);
                 player.attack += attackBonus;
                 log(`装备主手 "${weapon.name}" (${weapon.rarity}★)，攻击力提升 ${attackBonus}，当前攻击力: ${player.attack}`);
                 gameElements.playerAttack.classList.add('blink');
                 gameElements.mainHandSlot.classList.add('glow');
             } else if (slot === 'offHand') {
-                const defenseBonus = weapon.rarity * 5;
+                const defenseBonus = weapon.rarity * 5 + (weapon.enhanceLevel > 0 ? weapon.rarity * weapon.enhanceLevel : 0);
                 player.defense += defenseBonus;
                 log(`装备副手 "${weapon.name}" (${weapon.rarity}★)，防御力提升 ${defenseBonus}，当前防御力: ${player.defense}`);
                 gameElements.playerDefense.classList.add('blink');
                 gameElements.offHandSlot.classList.add('glow');
             } else if (slot === 'accessory') {
-                const hpBonus = weapon.rarity * 20;
+                const hpBonus = weapon.rarity * 20 + (weapon.enhanceLevel > 0 ? weapon.rarity * weapon.enhanceLevel * 5 : 0);
                 player.maxHp += hpBonus;
                 player.hp += hpBonus;
                 log(`装备饰品 "${weapon.name}" (${weapon.rarity}★)，生命值上限提升 ${hpBonus}，当前生命值: ${player.hp}/${player.maxHp}`);
@@ -1206,180 +1290,276 @@
                 gameElements.accessorySlot.classList.add('glow');
             }
 
-            // 从背包中移除装备的武器
             player.inventory.splice(index, 1);
             updateInventoryUI();
+            updateEnhanceUI(player, gameElements);
             updateGameUI();
         }
 
-        // 卸下装备
         function unequipWeapon(slot) {
             const weapon = player.equipment[slot];
             if (!weapon) return;
 
-            // 尝试将卸下的武器放回背包
             if (player.inventory.length >= player.inventoryCapacity) {
-                const confirmDiscard = confirm(`背包已满，是否丢弃${slot === 'mainHand' ? '主手' : slot === 'offHand' ? '副手' : '饰品'}装备 "${weapon.name}"？`);
-                if (!confirmDiscard) {
-                    log(`取消卸下 "${weapon.name}"，背包已满且未选择丢弃`);
-                    return;
-                }
-                log(`背包已满，丢弃了${slot === 'mainHand' ? '主手' : slot === 'offHand' ? '副手' : '饰品'}装备 "${weapon.name}"`);
-            } else {
-                player.inventory.push(weapon);
-                log(`${slot === 'mainHand' ? '主手' : slot === 'offHand' ? '副手' : '饰品'}装备 "${weapon.name}" 已返回背包`);
+                log('背包已满！请出售或丢弃武器以腾出空间');
+                return;
             }
 
-            // 移除属性加成
+            player.inventory.push(weapon);
+            log(`${slot === 'mainHand' ? '主手' : slot === 'offHand' ? '副手' : '饰品'}装备 "${weapon.name}" 已卸下并存入背包`);
+
             if (slot === 'mainHand') {
-                const attackBonus = weapon.rarity * 10;
+                const attackBonus = weapon.rarity * 10 + (weapon.enhanceLevel > 0 ? weapon.rarity * weapon.enhanceLevel * 2 : 0);
                 player.attack -= attackBonus;
                 log(`卸下主手装备 "${weapon.name}"，攻击力减少 ${attackBonus}，当前攻击力: ${player.attack}`);
                 gameElements.playerAttack.classList.add('blink');
-                gameElements.mainHandSlot.classList.add('glow');
             } else if (slot === 'offHand') {
-                const defenseBonus = weapon.rarity * 5;
+                const defenseBonus = weapon.rarity * 5 + (weapon.enhanceLevel > 0 ? weapon.rarity * weapon.enhanceLevel : 0);
                 player.defense -= defenseBonus;
                 log(`卸下副手装备 "${weapon.name}"，防御力减少 ${defenseBonus}，当前防御力: ${player.defense}`);
                 gameElements.playerDefense.classList.add('blink');
-                gameElements.offHandSlot.classList.add('glow');
             } else if (slot === 'accessory') {
-                const hpBonus = weapon.rarity * 20;
+                const hpBonus = weapon.rarity * 20 + (weapon.enhanceLevel > 0 ? weapon.rarity * weapon.enhanceLevel * 5 : 0);
                 player.maxHp -= hpBonus;
                 player.hp = Math.min(player.hp, player.maxHp);
                 log(`卸下饰品 "${weapon.name}"，生命值上限减少 ${hpBonus}，当前生命值: ${player.hp}/${player.maxHp}`);
                 gameElements.playerMaxHp.classList.add('blink');
                 gameElements.playerHp.classList.add('blink');
-                gameElements.accessorySlot.classList.add('glow');
             }
 
             player.equipment[slot] = null;
             updateInventoryUI();
+            updateEnhanceUI(player, gameElements);
             updateGameUI();
         }
 
-        // 出售系统
         function sellWeapon(index) {
             const weapon = player.inventory[index];
             if (!weapon) return;
 
-            const sellPrice = weapon.rarity * 20;
-            player.gold += sellPrice;
-            log(`出售武器 "${weapon.name}" (${weapon.rarity}★)，获得 ${sellPrice} 金币`);
+            const gold = weapon.rarity * 20;
+            player.gold += gold;
+            log(`出售 "${weapon.name}" (${weapon.rarity}★)，获得 ${gold} 金币`);
             player.inventory.splice(index, 1);
             updateInventoryUI();
+            updateEnhanceUI(player, gameElements);
             updateGameUI();
         }
 
-        // 检查升级
-        function checkLevelUp() {
+        function levelUp() {
             while (player.exp >= player.expToLevel) {
                 player.level++;
                 player.exp -= player.expToLevel;
-                player.expToLevel = player.level * 50;
+                player.expToLevel = Math.floor(player.expToLevel * 1.5);
                 player.maxHp += 20;
                 player.hp = player.maxHp;
                 player.attack += 5;
                 player.defense += 2;
-                log(`玩家升级到 ${player.level} 级！生命值上限+20，攻击力+5，防御力+2，生命值已回满`);
+                log(`恭喜升级！当前等级: ${player.level}，生命值上限+20，攻击力+5，防御力+2`);
+                gameElements.playerLevel.classList.add('blink');
                 gameElements.playerMaxHp.classList.add('blink');
                 gameElements.playerHp.classList.add('blink');
                 gameElements.playerAttack.classList.add('blink');
                 gameElements.playerDefense.classList.add('blink');
-                updateGameUI();
             }
+            updateGameUI();
         }
 
         function generateMonster() {
-            battleCount++;
-            monster.hp = 20 + battleCount * 5;
-            monster.attack = 5 + battleCount * 2;
-            updateGameUI();
+            const baseHp = 25 + (battleCount * 10);
+            const baseAttack = 7 + Math.floor(battleCount / 2);
+            const levelMultiplier = 1 + (player.level - 1) * 0.1;
+
+            monster.hp = Math.floor(baseHp * levelMultiplier);
+            monster.attack = Math.floor(baseAttack * levelMultiplier);
             log(`第 ${battleCount} 次战斗开始！遇到怪物（生命值: ${monster.hp}, 攻击力: ${monster.attack}）`);
+            updateGameUI();
         }
 
         function fightRound() {
-            monster.hp -= player.attack;
-            log(`玩家攻击怪物，造成 ${player.attack} 点伤害，怪物剩余生命值: ${monster.hp}`);
-
-            if (monster.hp <= 0) {
-                const goldReward = Math.floor(Math.random() * 31) + 20;
-                const expReward = Math.floor(Math.random() * 11) + 10;
-                player.gold += goldReward;
-                player.exp += expReward;
-                log(`怪物被击败！获得 ${goldReward} 金币和 ${expReward} 经验值`);
-                checkLevelUp();
-                isFighting = false;
-                gameElements.fightButton.disabled = false;
-                updateGameUI();
+            if (isFighting) {
+                console.log('战斗进行中，请等待！');
                 return;
             }
 
-            const damage = Math.max(1, monster.attack - player.defense);
-            player.hp -= damage;
-            log(`怪物攻击玩家，造成 ${damage} 点伤害（减免 ${player.defense}），玩家剩余生命值: ${player.hp}`);
-
-            if (player.hp <= 0) {
-                log('玩家被击败！游戏结束');
-                isFighting = false;
-                gameElements.fightButton.disabled = true;
-                gameElements.gachaButton.disabled = true;
-                gameElements.healButton.disabled = true;
-                setTimeout(() => {
-                    alert('游戏结束！你被击败了。');
-                    location.reload();
-                }, 1000);
-                return;
-            }
-
-            updateGameUI();
-            setTimeout(fightRound, 1000);
-        }
-
-        gameElements.fightButton.addEventListener('click', () => {
-            if (isFighting) return;
             isFighting = true;
             gameElements.fightButton.disabled = true;
-            gameElements.gachaButton.disabled = true;
-            gameElements.healButton.disabled = true;
-            generateMonster();
-            fightRound();
-        });
+            console.log('战斗开始，按钮已禁用');
 
-        gameElements.gachaButton.addEventListener('click', () => {
-            if (player.gold < 100) {
-                log('金币不足，无法抽卡！需要100金币');
-                return;
+            if (monster.hp <= 0) {
+                battleCount++;
+                generateMonster();
             }
 
-            player.gold -= 100;
-            log('消耗100金币进行抽卡...');
+            // 自动战斗循环
+            autoFightInterval = setInterval(() => {
+                try {
+                    // 玩家攻击怪物
+                    let damageToMonster = player.attack;
+                    monster.hp -= damageToMonster;
+                    log(`玩家攻击怪物，造成 ${damageToMonster} 点伤害，怪物剩余生命值: ${monster.hp}`);
+
+                    // 检查怪物是否被击败
+                    if (monster.hp <= 0) {
+                        const expGain = 10;
+                        const goldGain = 33;
+                        player.exp += expGain;
+                        player.gold += goldGain;
+                        log(`怪物被击败！获得 ${goldGain} 金币和 ${expGain} 经验值`);
+                        levelUp();
+                        monster.hp = 0;
+                        updateGameUI();
+                        clearInterval(autoFightInterval);
+                        isFighting = false;
+                        gameElements.fightButton.disabled = false;
+                        console.log('战斗结束，按钮已启用');
+                        return;
+                    }
+
+                    // 怪物攻击玩家
+                    let damageToPlayer = Math.max(1, monster.attack - player.defense);
+                    let damageReduction = player.defense;
+                    player.hp -= damageToPlayer;
+                    log(`怪物攻击玩家，造成 ${damageToPlayer} 点伤害（减免 ${damageReduction}），玩家剩余生命值: ${player.hp}`);
+
+                    // 检查玩家是否死亡
+                    if (player.hp <= 0) {
+                        log('玩家被击败！游戏结束');
+                        player.hp = 0;
+                        gameElements.fightButton.disabled = true;
+                        gameElements.gachaButton.disabled = true;
+                        gameElements.healButton.disabled = true;
+                        clearInterval(autoFightInterval);
+                        isFighting = false;
+                        updateGameUI();
+                        alert('游戏结束！你被怪物击败了。刷新页面以重新开始。');
+                        return;
+                    }
+
+                    updateGameUI();
+                } catch (error) {
+                    console.error('战斗中发生错误:', error);
+                    log(`战斗中发生错误: ${error.message}`);
+                    clearInterval(autoFightInterval);
+                    isFighting = false;
+                    gameElements.fightButton.disabled = false;
+                }
+            }, 1000); // 每秒进行一回合战斗
+        }
+
+        // 初始化函数
+        function initializeGame() {
+            preloadImage('https://static.wikia.nocookie.net/to-aru-majutsu-no-index/images/1/12/Pentagram-GreatGold.png');
+            createParticles();
+            updateStats();
             updateGameUI();
-            elements.btnSingle.click();
-        });
+            updateEnhanceUI(player, gameElements);
 
-        gameElements.healButton.addEventListener('click', () => {
+            // 绑定主要按钮事件
+            if (gameElements.fightButton) {
+                gameElements.fightButton.removeEventListener('click', fightRound); // 防止重复绑定
+                gameElements.fightButton.addEventListener('click', fightRound);
+                console.log('战斗按钮事件已绑定');
+            } else {
+                console.error('无法找到 fight-button 元素');
+            }
+
+            if (gameElements.gachaButton) {
+                gameElements.gachaButton.removeEventListener('click', handleGacha); // 防止重复绑定
+                gameElements.gachaButton.addEventListener('click', handleGacha);
+            }
+
+            if (gameElements.healButton) {
+                gameElements.healButton.removeEventListener('click', handleHeal); // 防止重复绑定
+                gameElements.healButton.addEventListener('click', handleHeal);
+            }
+
+            if (elements.btnSingle) {
+                elements.btnSingle.removeEventListener('click', handleSingleWish); // 防止重复绑定
+                elements.btnSingle.addEventListener('click', handleSingleWish);
+            }
+
+            if (elements.btnMulti) {
+                elements.btnMulti.removeEventListener('click', handleMultiWish); // 防止重复绑定
+                elements.btnMulti.addEventListener('click', handleMultiWish);
+            }
+
+            // 绑定强化按钮事件
+            document.querySelectorAll('.enhance-button').forEach(button => {
+                button.removeEventListener('click', handleEnhance); // 防止重复绑定
+                button.addEventListener('click', handleEnhance);
+            });
+        }
+
+        function handleGacha() {
+            if (player.gold < 100) {
+                log('金币不足！抽卡需要 100 金币');
+                return;
+            }
+            player.gold -= 100;
+            wishAnimation(1, (results) => {
+                results.forEach((weapon) => {
+                    const newWeapon = displayWeapon(weapon);
+                    addToInventory(newWeapon);
+                });
+                updateStats();
+                updateGameUI();
+            });
+        }
+
+        function handleHeal() {
             if (player.gold < 10) {
-                log('金币不足，无法回血！需要10金币');
+                log('金币不足！回血需要 10 金币');
                 return;
             }
-
             if (player.hp >= player.maxHp) {
-                log('生命值已满，无需回血！');
+                log('生命值已满，无需回血');
                 return;
             }
-
             player.gold -= 10;
-            const healAmount = 50;
-            player.hp = Math.min(player.hp + healAmount, player.maxHp);
-            log(`消耗10金币恢复 ${healAmount} 点生命值，当前生命值: ${player.hp}/${player.maxHp}`);
+            player.hp = player.maxHp;
+            log('已回满生命值！');
             gameElements.playerHp.classList.add('blink');
             updateGameUI();
-        });
+        }
 
-        // 初始化
-        updateGameUI();
-        updateInventoryUI();
+        function handleSingleWish() {
+            wishAnimation(1, (results) => {
+                results.forEach((weapon) => {
+                    const newWeapon = displayWeapon(weapon);
+                    addToInventory(newWeapon);
+                });
+                updateStats();
+            });
+        }
+
+        function handleMultiWish() {
+            wishAnimation(10, (results) => {
+                results.forEach((weapon, i) => {
+                    setTimeout(() => {
+                        const newWeapon = displayWeapon(weapon);
+                        addToInventory(newWeapon);
+                    }, i * 150);
+                });
+                updateStats();
+            });
+        }
+
+        function handleEnhance(e) {
+            const source = e.target.getAttribute('data-source');
+            if (source === 'inventory') {
+                const index = parseInt(e.target.getAttribute('data-index'));
+                const weapon = player.inventory[index];
+                enhanceWeapon(weapon, 'inventory', index, player, gameElements, updateInventoryUI, () => updateEnhanceUI(player, gameElements), updateGameUI, updateEquippedWeaponStats, log);
+            } else if (source === 'equipment') {
+                const slot = e.target.getAttribute('data-slot');
+                const weapon = player.equipment[slot];
+                enhanceWeapon(weapon, 'equipment', slot, player, gameElements, updateInventoryUI, () => updateEnhanceUI(player, gameElements), updateGameUI, updateEquippedWeaponStats, log);
+            }
+        }
+
+        // 确保 DOM 加载完成后初始化
+        document.addEventListener('DOMContentLoaded', initializeGame);
     </script>
 </body>
 </html>
