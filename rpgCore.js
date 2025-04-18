@@ -31,8 +31,8 @@ function updateGameUI() {
     gameElements.monsterAttack.textContent = monster.attack;
     gameElements.monsterLai.textContent = monster.lai;
     gameElements.battleCount.textContent = battleCount;
-    gameElements.inventoryCount.textContent = player.inventory.length;
     gameElements.distance.textContent = distance;
+    gameElements.inventoryCount.textContent = player.inventory.length;
 
     // 更新玩家LAI（由主手武器决定）
     const lai = player.equipment.mainHand ? player.equipment.mainHand.lai : 1;
@@ -50,8 +50,6 @@ function updateGameUI() {
     gameElements.gachaButton.disabled = player.gold < 100 || isFighting;
     gameElements.healButton.disabled = player.gold < 10 || player.hp >= player.maxHp || isFighting;
     gameElements.attackButton.disabled = distance > lai;
-
-    updateEquipmentUI(); // 依赖equipment.js
 }
 
 // 记录战斗日志
@@ -164,46 +162,75 @@ function endBattle(playerWon) {
 
 // 初始化RPG核心事件
 function initRPG() {
+    // 调试：确认fightButton存在
+    if (!gameElements.fightButton) {
+        console.error('fightButton未定义，请检查main.js中的gameElements');
+        return;
+    }
+
     gameElements.fightButton.addEventListener('click', () => {
-        if (isFighting) return;
+        console.log('点击“开始战斗”，当前isFighting:', isFighting); // 调试日志
+        if (isFighting) {
+            console.log('已在战斗中，忽略点击');
+            return;
+        }
         isFighting = true;
+        console.log('开始新战斗，调用generateMonster');
         generateMonster();
         updateGameUI();
     });
 
     gameElements.moveForwardButton.addEventListener('click', () => {
-        if (!isFighting) return;
+        if (!isFighting) {
+            console.log('未在战斗中，前进按钮忽略');
+            return;
+        }
         if (distance <= 0) {
             showToast('已贴身，无法更近！');
+            console.log('DQ=0，无法前进');
             return;
         }
         distance--;
         log(`玩家前进，距离减少到 ${distance} 格`);
+        console.log('玩家前进，DQ:', distance);
         updateGameUI();
         monsterTurn();
     });
 
     gameElements.moveBackwardButton.addEventListener('click', () => {
-        if (!isFighting) return;
+        if (!isFighting) {
+            console.log('未在战斗中，后退按钮忽略');
+            return;
+        }
         if (distance >= 10) {
             showToast('已达最大距离！');
+            console.log('DQ=10，无法后退');
             return;
         }
         distance++;
         log(`玩家后退，距离增加到 ${distance} 格`);
+        console.log('玩家后退，DQ:', distance);
         updateGameUI();
         monsterTurn();
     });
 
     gameElements.stayButton.addEventListener('click', () => {
-        if (!isFighting) return;
+        if (!isFighting) {
+            console.log('未在战斗中，原地按钮忽略');
+            return;
+        }
         log('玩家原地不动');
+        console.log('玩家原地，DQ:', distance);
         updateGameUI();
         monsterTurn();
     });
 
     gameElements.attackButton.addEventListener('click', () => {
-        if (!isFighting) return;
+        if (!isFighting) {
+            console.log('未在战斗中，攻击按钮忽略');
+            return;
+        }
+        console.log('玩家攻击，DQ:', distance, 'LAI:', player.equipment.mainHand ? player.equipment.mainHand.lai : 1);
         playerAttack();
     });
 
@@ -235,5 +262,6 @@ function initRPG() {
         updateGameUI();
     });
 
+    console.log('initRPG完成，初始isFighting:', isFighting);
     updateGameUI();
 }
