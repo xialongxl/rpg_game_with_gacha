@@ -1123,7 +1123,7 @@
                 const canEquipOffHand = ['盾牌', '匕首'].includes(weapon.type);
                 const enhanceText = weapon.enhanceLevel > 0 ? ` +${weapon.enhanceLevel}` : '';
                 itemDiv.innerHTML = `
-                    <div class="inventory-item-info">${weapon.name}${enhanceText} (${weapon.type}, ${weapon.rarity}★)</div>
+                    <div class="inventory-item-info">${weapon.name} (${weapon.type}, ${weapon.rarity}★)</div>
                     <div class="inventory-item-actions">
                         ${canEquipMainHand ? `<button class="action-button equip-main-hand-button" data-index="${index}" data-slot="mainHand">装备主手</button>` : ''}
                         ${canEquipOffHand ? `<button class="action-button equip-off-hand-button" data-index="${index}" data-slot="offHand">装备副手</button>` : ''}
