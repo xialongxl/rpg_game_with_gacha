@@ -14,7 +14,7 @@ const gameElements = {
     battleCount: document.getElementById('battle-count'),
     playerLai: document.getElementById('player-lai'),
     distance: document.getElementById('distance'),
-    distanceBar: document.getElementById('distance-bar'),
+    distanceGrid: document.getElementById('distance-grid'),
     battleLog: document.getElementById('battle-log'),
     fightButton: document.getElementById('fight-button'),
     gachaButton: document.getElementById('gacha-button'),
@@ -22,7 +22,6 @@ const gameElements = {
     openEnhanceButton: document.getElementById('open-enhance-button'),
     moveForwardButton: document.getElementById('move-forward-button'),
     moveBackwardButton: document.getElementById('move-backward-button'),
-    stayButton: document.getElementById('stay-button'),
     attackButton: document.getElementById('attack-button'),
     battleActions: document.getElementById('battle-actions'),
     inventoryList: document.getElementById('inventory-list'),
@@ -68,4 +67,7 @@ function initGame() {
     initEnhance(); // enhance.js
 }
 
-initGame();
+// 确保DOM加载完成
+document.addEventListener('DOMContentLoaded', () => {
+    initGame();
+});

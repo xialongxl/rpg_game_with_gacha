@@ -1,4 +1,3 @@
-// 添加武器到背包
 function addToInventory(weapon) {
     if (player.inventory.length >= player.inventoryCapacity) {
         log('背包已满！请出售或丢弃武器以腾出空间');
@@ -11,13 +10,13 @@ function addToInventory(weapon) {
     updateGameUI(); // 依赖rpgCore.js
 }
 
-// 更新背包UI
 function updateInventoryUI() {
+    console.log('Updating inventory UI:', player.inventory); // 调试日志
     gameElements.inventoryList.innerHTML = '';
     player.inventory.forEach((weapon, index) => {
         const itemDiv = document.createElement('div');
         itemDiv.className = 'inventory-item';
-        const canEquipMainHand = ['单手剑', '双手下剑', '匕首', '法杖', '弓', '魔法书'].includes(weapon.type);
+        const canEquipMainHand = ['单手剑', '双手剑', '匕首', '法杖', '弓', '魔法书'].includes(weapon.type);
         const canEquipOffHand = ['盾牌', '匕首'].includes(weapon.type);
         itemDiv.innerHTML = `
             <div class="inventory-item-info">${weapon.name} (${weapon.type}, ${weapon.rarity}★, LAI=${weapon.lai})</div>
@@ -31,30 +30,39 @@ function updateInventoryUI() {
         gameElements.inventoryList.appendChild(itemDiv);
     });
 
-    // 绑定装备按钮事件
+    // 移除旧事件，防止重复绑定
     document.querySelectorAll('.equip-main-hand-button, .equip-off-hand-button, .equip-accessory-button').forEach(button => {
-        button.addEventListener('click', (e) => {
-            const index = parseInt(e.target.getAttribute('data-index'));
-            const slot = e.target.getAttribute('data-slot');
-            equipWeapon(index, slot); // 依赖equipment.js
-        });
+        button.removeEventListener('click', handleEquip);
+        button.addEventListener('click', handleEquip);
     });
 
-    // 绑定出售按钮事件
     document.querySelectorAll('.sell-button').forEach(button => {
-        button.addEventListener('click', (e) => {
-            const index = parseInt(e.target.getAttribute('data-index'));
-            sellWeapon(index);
-        });
+        button.removeEventListener('click', handleSell);
+        button.addEventListener('click', handleSell);
     });
+
+    function handleEquip(e) {
+        const index = parseInt(e.target.getAttribute('data-index'));
+        const slot = e.target.getAttribute('data-slot');
+        console.log(`Equipping from inventory: index=${index}, slot=${slot}`); // 调试日志
+        equipWeapon(index, slot); // 依赖equipment.js
+    }
+
+    function handleSell(e) {
+        const index = parseInt(e.target.getAttribute('data-index'));
+        console.log(`Selling from inventory: index=${index}`); // 调试日志
+        sellWeapon(index);
+    }
 
     gameElements.inventoryCount.textContent = player.inventory.length;
 }
 
-// 出售武器
 function sellWeapon(index) {
     const weapon = player.inventory[index];
-    if (!weapon) return;
+    if (!weapon) {
+        console.error('Invalid sell index:', index);
+        return;
+    }
 
     const gold = weapon.rarity * 20;
     player.gold += gold;

@@ -1,5 +1,5 @@
-// 更新装备栏UI
 function updateEquipmentUI() {
+    console.log('Updating equipment UI:', player.equipment); // 调试日志
     if (player.equipment.mainHand) {
         const weapon = player.equipment.mainHand;
         gameElements.mainHandSlot.innerHTML = `
@@ -42,21 +42,26 @@ function updateEquipmentUI() {
         gameElements.accessorySlot.innerHTML = '<div class="equipment-slot-info">饰品: 无装备</div>';
     }
 
+    // 移除旧事件，防止重复绑定
     document.querySelectorAll('.unequip-button').forEach(button => {
-        button.addEventListener('click', (e) => {
-            const slot = e.target.getAttribute('data-slot');
-            unequipWeapon(slot);
-        });
+        button.removeEventListener('click', handleUnequip); // 移除旧监听
+        button.addEventListener('click', handleUnequip); // 添加新监听
     });
 
-    updateGameUI(); // 确保LAI更新
+    function handleUnequip(e) {
+        const slot = e.target.getAttribute('data-slot');
+        unequipWeapon(slot);
+    }
 }
 
-// 装备武器
 function equipWeapon(index, slot) {
     const weapon = player.inventory[index];
-    if (!weapon) return;
+    if (!weapon) {
+        console.error('Invalid weapon index:', index);
+        return;
+    }
 
+    console.log(`Equipping ${weapon.name} to ${slot}`); // 调试日志
     if (player.equipment[slot]) {
         const oldWeapon = player.equipment[slot];
         if (player.inventory.length >= player.inventoryCapacity) {
@@ -116,15 +121,19 @@ function equipWeapon(index, slot) {
 
     player.inventory.splice(index, 1);
     updateInventoryUI(); // 依赖inventory.js
-    updateGameUI(); // 依赖rpgCore.js
+    updateEquipmentUI(); // 显式更新装备栏
+    updateGameUI(); // 更新玩家状态
     updateEnhancePanel(); // 依赖enhance.js
 }
 
-// 卸下装备
 function unequipWeapon(slot) {
     const weapon = player.equipment[slot];
-    if (!weapon) return;
+    if (!weapon) {
+        console.error('No weapon in slot:', slot);
+        return;
+    }
 
+    console.log(`Unequipping ${weapon.name} from ${slot}`); // 调试日志
     if (player.inventory.length >= player.inventoryCapacity) {
         const confirmDiscard = confirm(`背包已满，是否丢弃${slot === 'mainHand' ? '主手' : slot === 'offHand' ? '副手' : '饰品'}装备 "${weapon.name}"？`);
         if (!confirmDiscard) {
@@ -161,6 +170,7 @@ function unequipWeapon(slot) {
 
     player.equipment[slot] = null;
     updateInventoryUI(); // 依赖inventory.js
-    updateGameUI(); // 依赖rpgCore.js
+    updateEquipmentUI(); // 显式更新装备栏
+    updateGameUI(); // 更新玩家状态
     updateEnhancePanel(); // 依赖enhance.js
 }
