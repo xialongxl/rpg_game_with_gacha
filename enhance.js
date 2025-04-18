@@ -1,115 +1,104 @@
-function enhanceWeapon(index) {
-    const weapon = player.inventory[index];
-    if (!weapon) return;
-
-    const enhanceLevel = weapon.enhanceLevel || 0;
-    const maxLevel = 10;
-    const baseCost = 50;
-    const costMultiplier = 20;
-    const baseSuccessRate = 0.95;
-    const decreaseRate = 0.05;
-    const minSuccessRate = 0.3;
-
-    if (enhanceLevel >= maxLevel) return;
-
-    const cost = baseCost + weapon.rarity * costMultiplier * (enhanceLevel + 1);
-    if (player.gold < cost) return;
-
-    const successRate = Math.max(
-        minSuccessRate,
-        baseSuccessRate * Math.pow(1 - decreaseRate, enhanceLevel)
-    );
-
-    player.gold -= cost;
-    if (Math.random() < successRate) {
-        weapon.enhanceLevel = enhanceLevel + 1;
-        const attackBonus = Math.floor(weapon.rarity * (enhanceLevel + 1));
-        weapon.baseStat = (weapon.baseStat || weapon.rarity * 10) + attackBonus;
-        log(`强化成功！${weapon.name} 提升到 +${weapon.enhanceLevel}，攻击力增加 ${attackBonus}`);
-    } else {
-        log(`强化失败！${weapon.name} 保持在 +${enhanceLevel}`);
-    }
-
-    updateGameUI(); // 依赖rpgCore.js
-}
-
-// 更新强化面板UI
 function updateEnhancePanel() {
     const select = gameElements.enhanceWeaponSelect;
     select.innerHTML = '<option value="-1">选择武器</option>';
-    player.inventory.forEach((weapon, index) => {
+    
+    player.inventory.concat(
+        player.equipment.mainHand ? [player.equipment.mainHand] : [],
+        player.equipment.offHand ? [player.equipment.offHand] : [],
+        player.equipment.accessory ? [player.equipment.accessory] : []
+    ).forEach((weapon, index) => {
         const option = document.createElement('option');
         option.value = index;
-        option.textContent = `${weapon.name} (${weapon.type}, ${weapon.rarity}★)`;
+        const location = 
+            weapon === player.equipment.mainHand ? ' (主手)' :
+            weapon === player.equipment.offHand ? ' (副手)' :
+            weapon === player.equipment.accessory ? ' (饰品)' : ' (背包)';
+        option.textContent = `${weapon.name} (${weapon.rarity}★, LAI=${weapon.lai}${weapon.enhanceLevel ? ', +' + weapon.enhanceLevel : ''})${location}`;
         select.appendChild(option);
     });
+
     updateEnhanceInfo(-1);
 }
 
-// 更新强化信息显示
 function updateEnhanceInfo(index) {
-    const infoDiv = gameElements.enhanceInfo;
-    if (index < 0 || index >= player.inventory.length) {
-        infoDiv.innerHTML = `
+    const info = gameElements.enhanceInfo;
+    if (index < 0 || index >= player.inventory.length + (player.equipment.mainHand ? 1 : 0) + (player.equipment.offHand ? 1 : 0) + (player.equipment.accessory ? 1 : 0)) {
+        info.innerHTML = `
             <p>武器信息: 未选择</p>
             <p>强化等级: -</p>
             <p>强化费用: -</p>
             <p>成功率: -</p>
         `;
+        gameElements.enhanceConfirmButton.disabled = true;
         return;
     }
 
-    const weapon = player.inventory[index];
-    const enhanceLevel = weapon.enhanceLevel || 0;
-    const maxLevel = 10;
-    const baseCost = 50;
-    const costMultiplier = 20;
-    const baseSuccessRate = 0.95;
-    const decreaseRate = 0.05;
-    const minSuccessRate = 0.3;
-
-    if (enhanceLevel >= maxLevel) {
-        infoDiv.innerHTML = `
-            <p>武器信息: ${weapon.name} (${weapon.type}, ${weapon.rarity}★)</p>
-            <p>强化等级: ${enhanceLevel}（已达最大等级）</p>
-            <p>强化费用: -</p>
-            <p>成功率: -</p>
-        `;
-        return;
-    }
-
-    const cost = baseCost + weapon.rarity * costMultiplier * (enhanceLevel + 1);
-    const successRate = Math.max(
-        minSuccessRate,
-        baseSuccessRate * Math.pow(1 - decreaseRate, enhanceLevel)
+    const allWeapons = player.inventory.concat(
+        player.equipment.mainHand ? [player.equipment.mainHand] : [],
+        player.equipment.offHand ? [player.equipment.offHand] : [],
+        player.equipment.accessory ? [player.equipment.accessory] : []
     );
-    const successRatePercent = (successRate * 100).toFixed(1);
+    const weapon = allWeapons[index];
+    const enhanceLevel = weapon.enhanceLevel || 0;
+    const cost = (enhanceLevel + 1) * 100;
+    const successRate = Math.max(10, 100 - enhanceLevel * 10);
 
-    infoDiv.innerHTML = `
-        <p>武器信息: ${weapon.name} (${weapon.type}, ${weapon.rarity}★)</p>
+    info.innerHTML = `
+        <p>武器信息: ${weapon.name} (${weapon.rarity}★, LAI=${weapon.lai}${weapon.enhanceLevel ? ', +' + weapon.enhanceLevel : ''})</p>
         <p>强化等级: ${enhanceLevel}</p>
         <p>强化费用: ${cost} 金币</p>
-        <p>成功率: ${successRatePercent}%</p>
+        <p>成功率: ${successRate}%</p>
     `;
+    gameElements.enhanceConfirmButton.disabled = player.gold < cost;
 }
 
-// 显示提示框
+function enhanceWeapon(index) {
+    const allWeapons = player.inventory.concat(
+        player.equipment.mainHand ? [player.equipment.mainHand] : [],
+        player.equipment.offHand ? [player.equipment.offHand] : [],
+        player.equipment.accessory ? [player.equipment.accessory] : []
+    );
+    const weapon = allWeapons[index];
+    if (!weapon) return;
+
+    const enhanceLevel = weapon.enhanceLevel || 0;
+    const cost = (enhanceLevel + 1) * 100;
+    const successRate = Math.max(10, 100 - enhanceLevel * 10);
+
+    if (player.gold < cost) {
+        showToast('金币不足，无法强化！');
+        return;
+    }
+
+    player.gold -= cost;
+    if (Math.random() * 100 < successRate) {
+        weapon.enhanceLevel = enhanceLevel + 1;
+        if (weapon === player.equipment.mainHand) {
+            const attackBonus = 5;
+            player.attack += attackBonus;
+            log(`强化成功！${weapon.name}提升到+${weapon.enhanceLevel}，攻击力+${attackBonus}`);
+            gameElements.playerAttack.classList.add('blink');
+        }
+        showToast(`强化成功！${weapon.name} +${weapon.enhanceLevel}`);
+    } else {
+        showToast(`强化失败！${weapon.name}保持+${enhanceLevel}`);
+        log(`强化失败，${weapon.name}保持+${enhanceLevel}`);
+    }
+
+    updateEnhancePanel();
+    updateGameUI(); // 依赖rpgCore.js
+}
+
 function showToast(message) {
-    const toast = gameElements.toast;
-    toast.textContent = message;
-    toast.classList.add('active');
+    gameElements.toast.textContent = message;
+    gameElements.toast.classList.add('active');
     setTimeout(() => {
-        toast.classList.remove('active');
+        gameElements.toast.classList.remove('active');
     }, 3000);
 }
 
-// 初始化强化系统
 function initEnhance() {
     gameElements.openEnhanceButton.addEventListener('click', () => {
-        if (player.inventory.length === 0) {
-            showToast('背包中没有武器可强化！');
-            return;
-        }
         gameElements.enhancePanel.classList.add('active');
         updateEnhancePanel();
     });
@@ -119,37 +108,14 @@ function initEnhance() {
     });
 
     gameElements.enhanceWeaponSelect.addEventListener('change', (e) => {
-        const index = parseInt(e.target.value);
-        updateEnhanceInfo(index);
+        updateEnhanceInfo(parseInt(e.target.value));
     });
 
     gameElements.enhanceConfirmButton.addEventListener('click', () => {
         const index = parseInt(gameElements.enhanceWeaponSelect.value);
-        if (index < 0 || index >= player.inventory.length) {
-            showToast('请先选择一件武器！');
-            return;
+        if (index >= 0) {
+            enhanceWeapon(index);
         }
-
-        const weapon = player.inventory[index];
-        const enhanceLevel = weapon.enhanceLevel || 0;
-        const maxLevel = 10;
-        const baseCost = 50;
-        const costMultiplier = 20;
-
-        if (enhanceLevel >= maxLevel) {
-            showToast('武器已达最大强化等级！');
-            return;
-        }
-
-        const cost = baseCost + weapon.rarity * costMultiplier * (enhanceLevel + 1);
-        if (player.gold < cost) {
-            showToast('金币不足，无法强化！');
-            return;
-        }
-
-        enhanceWeapon(index);
-        updateEnhancePanel();
-        updateEnhanceInfo(index);
     });
 
     updateEnhancePanel();

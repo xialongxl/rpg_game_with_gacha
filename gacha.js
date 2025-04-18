@@ -45,6 +45,17 @@ const weaponImages = {
     "盾牌": "https://raw.githubusercontent.com/xialongxl/imgbox/refs/heads/main/templar-shield.png"
 };
 
+// 武器LAI定义
+const weaponLai = {
+    '单手剑': 2,
+    '双手剑': 3,
+    '匕首': 1,
+    '法杖': 4,
+    '弓': 5,
+    '魔法书': 3,
+    '盾牌': 0
+};
+
 let pityCounter = 0;
 const stats = { 7: 0, 6: 0, 5: 0, 4: 0, 3: 0, 2: 0, 1: 0, total: 0 };
 const wishEffect = document.getElementById('wish-effect');
@@ -129,7 +140,8 @@ function createWeapon(rarity) {
         name: name,
         type: type,
         rarity: rarity,
-        description: desc
+        description: desc,
+        lai: weaponLai[type] || 0 // 添加LAI属性
     };
 }
 
@@ -157,7 +169,7 @@ function displayWeapon(weapon) {
         <img src="${weaponImages[weapon.type] || 'https://via.placeholder.com/150?text=未知武器'}" class="item-image">
         <div class="item-name">${weapon.name}</div>
         <div class="rarity-stars">${starsHTML}</div>
-        <div>${weapon.type}</div>
+        <div>${weapon.type} (LAI=${weapon.lai})</div>
     `;
     
     const back = document.createElement('div');
@@ -165,7 +177,7 @@ function displayWeapon(weapon) {
     back.innerHTML = `
         <div class="item-name">${weapon.name}</div>
         <div class="rarity-stars">${starsHTML}</div>
-        <div>${weapon.type}</div>
+        <div>${weapon.type} (LAI=${weapon.lai})</div>
         <div class="item-description">${weapon.description}</div>
     `;
     

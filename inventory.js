@@ -6,7 +6,7 @@ function addToInventory(weapon) {
         return;
     }
     player.inventory.push(weapon);
-    log(`获得武器 "${weapon.name}" (${weapon.rarity}★)，已存入背包`);
+    log(`获得武器 "${weapon.name}" (${weapon.rarity}★, LAI=${weapon.lai})，已存入背包`);
     updateInventoryUI();
     updateGameUI(); // 依赖rpgCore.js
 }
@@ -17,10 +17,10 @@ function updateInventoryUI() {
     player.inventory.forEach((weapon, index) => {
         const itemDiv = document.createElement('div');
         itemDiv.className = 'inventory-item';
-        const canEquipMainHand = ['单手剑', '双手剑', '法杖', '弓', '魔法书', '匕首'].includes(weapon.type);
+        const canEquipMainHand = ['单手剑', '双手下剑', '匕首', '法杖', '弓', '魔法书'].includes(weapon.type);
         const canEquipOffHand = ['盾牌', '匕首'].includes(weapon.type);
         itemDiv.innerHTML = `
-            <div class="inventory-item-info">${weapon.name} (${weapon.type}, ${weapon.rarity}★)</div>
+            <div class="inventory-item-info">${weapon.name} (${weapon.type}, ${weapon.rarity}★, LAI=${weapon.lai})</div>
             <div class="inventory-item-actions">
                 ${canEquipMainHand ? `<button class="action-button equip-main-hand-button" data-index="${index}" data-slot="mainHand">装备主手</button>` : ''}
                 ${canEquipOffHand ? `<button class="action-button equip-off-hand-button" data-index="${index}" data-slot="offHand">装备副手</button>` : ''}
@@ -31,6 +31,7 @@ function updateInventoryUI() {
         gameElements.inventoryList.appendChild(itemDiv);
     });
 
+    // 绑定装备按钮事件
     document.querySelectorAll('.equip-main-hand-button, .equip-off-hand-button, .equip-accessory-button').forEach(button => {
         button.addEventListener('click', (e) => {
             const index = parseInt(e.target.getAttribute('data-index'));
@@ -39,23 +40,26 @@ function updateInventoryUI() {
         });
     });
 
+    // 绑定出售按钮事件
     document.querySelectorAll('.sell-button').forEach(button => {
         button.addEventListener('click', (e) => {
             const index = parseInt(e.target.getAttribute('data-index'));
             sellWeapon(index);
         });
     });
+
+    gameElements.inventoryCount.textContent = player.inventory.length;
 }
 
 // 出售武器
 function sellWeapon(index) {
     const weapon = player.inventory[index];
     if (!weapon) return;
-    const sellPrice = weapon.rarity * 20;
-    player.gold += sellPrice;
-    log(`出售武器 "${weapon.name}" (${weapon.rarity}★)，获得 ${sellPrice} 金币`);
+
+    const gold = weapon.rarity * 20;
+    player.gold += gold;
+    log(`出售 "${weapon.name}" (${weapon.rarity}★)，获得 ${gold} 金币`);
     player.inventory.splice(index, 1);
     updateInventoryUI();
     updateGameUI(); // 依赖rpgCore.js
-    updateEnhancePanel(); // 依赖enhance.js
 }

@@ -12,9 +12,10 @@ let player = {
     equipment: { mainHand: null, offHand: null, accessory: null }
 };
 
-let monster = { hp: 0, attack: 0 };
+let monster = { hp: 0, attack: 0, lai: 0 };
 let battleCount = 0;
 let isFighting = false;
+let distance = 5; // 距离度（DQ）
 
 // 更新游戏主UI
 function updateGameUI() {
@@ -28,11 +29,27 @@ function updateGameUI() {
     gameElements.playerGold.textContent = player.gold;
     gameElements.monsterHp.textContent = monster.hp;
     gameElements.monsterAttack.textContent = monster.attack;
+    gameElements.monsterLai.textContent = monster.lai;
     gameElements.battleCount.textContent = battleCount;
     gameElements.inventoryCount.textContent = player.inventory.length;
+    gameElements.distance.textContent = distance;
 
+    // 更新玩家LAI（由主手武器决定）
+    const lai = player.equipment.mainHand ? player.equipment.mainHand.lai : 1;
+    gameElements.playerLai.textContent = lai;
+
+    // 更新DQ格子显示
+    const cells = gameElements.distanceBar.querySelectorAll('.distance-cell');
+    cells.forEach((cell, index) => {
+        cell.classList.toggle('active', index < distance);
+    });
+
+    // 控制战斗按钮
+    gameElements.fightButton.style.display = isFighting ? 'none' : 'inline-block';
+    gameElements.battleActions.style.display = isFighting ? 'flex' : 'none';
     gameElements.gachaButton.disabled = player.gold < 100 || isFighting;
     gameElements.healButton.disabled = player.gold < 10 || player.hp >= player.maxHp || isFighting;
+    gameElements.attackButton.disabled = distance > lai;
 
     updateEquipmentUI(); // 依赖equipment.js
 }
@@ -67,47 +84,82 @@ function generateMonster() {
     battleCount++;
     monster.hp = 20 + battleCount * 5;
     monster.attack = 5 + battleCount * 2;
+    monster.lai = Math.min(1 + Math.floor(battleCount / 5), 3); // LAI随战斗次数递增，最大3
+    distance = 5;
     updateGameUI();
-    log(`第 ${battleCount} 次战斗开始！遇到怪物（生命值: ${monster.hp}, 攻击力: ${monster.attack}）`);
+    log(`第 ${battleCount} 次战斗开始！遇到怪物（生命值: ${monster.hp}, 攻击力: ${monster.attack}, 攻击距离: ${monster.lai}）`);
 }
 
-// 战斗回合
-function fightRound() {
-    monster.hp -= player.attack;
-    log(`玩家攻击怪物，造成 ${player.attack} 点伤害，怪物剩余生命值: ${monster.hp}`);
+// 玩家攻击
+function playerAttack() {
+    const playerLai = player.equipment.mainHand ? player.equipment.mainHand.lai : 1;
+    if (distance > playerLai) {
+        showToast('目标超出攻击范围！'); // 依赖enhance.js
+        return;
+    }
+
+    let damage = Math.max(1, player.attack - Math.floor(monster.attack / 2));
+    if (player.equipment.mainHand && player.equipment.mainHand.type === '匕首' && distance === 0) {
+        damage = Math.floor(damage * 1.5); // 匕首贴身加伤
+        log('匕首贴身攻击，伤害提升50%！');
+    } else if (player.equipment.mainHand && player.equipment.mainHand.type === '魔法书' && distance === playerLai) {
+        damage *= 2; // 魔法书精准距离双倍伤害
+        log('魔法书精准打击，伤害翻倍！');
+    }
+    monster.hp -= damage;
+    log(`玩家攻击怪物，造成 ${damage} 点伤害，怪物剩余生命值: ${monster.hp}`);
+    gameElements.monsterHp.classList.add('blink');
 
     if (monster.hp <= 0) {
+        endBattle(true);
+    } else {
+        monsterTurn();
+    }
+}
+
+// 怪物回合
+function monsterTurn() {
+    if (distance > 0) {
+        distance--;
+        log(`怪物前进，距离减少到 ${distance} 格`);
+    } else {
+        log('怪物已贴身，无法继续前进');
+    }
+
+    if (distance <= monster.lai) {
+        const damage = Math.max(1, monster.attack - player.defense);
+        player.hp -= damage;
+        log(`怪物攻击玩家，造成 ${damage} 点伤害，玩家剩余生命值: ${player.hp}`);
+        gameElements.playerHp.classList.add('blink');
+    } else {
+        log('玩家超出怪物攻击范围，怪物未造成伤害');
+    }
+
+    if (player.hp <= 0) {
+        endBattle(false);
+    } else {
+        updateGameUI();
+    }
+}
+
+// 结束战斗
+function endBattle(playerWon) {
+    isFighting = false;
+    if (playerWon) {
         const goldReward = Math.floor(Math.random() * 31) + 20;
         const expReward = Math.floor(Math.random() * 11) + 10;
         player.gold += goldReward;
         player.exp += expReward;
         log(`怪物被击败！获得 ${goldReward} 金币和 ${expReward} 经验值`);
         checkLevelUp();
-        isFighting = false;
-        gameElements.fightButton.disabled = false;
-        updateGameUI();
-        return;
-    }
-
-    const damage = Math.max(1, monster.attack - player.defense);
-    player.hp -= damage;
-    log(`怪物攻击玩家，造成 ${damage} 点伤害（减免 ${player.defense}），玩家剩余生命值: ${player.hp}`);
-
-    if (player.hp <= 0) {
+    } else {
         log('玩家被击败！游戏结束');
-        isFighting = false;
-        gameElements.fightButton.disabled = true;
-        gameElements.gachaButton.disabled = true;
-        gameElements.healButton.disabled = true;
         setTimeout(() => {
             alert('游戏结束！你被击败了。');
             location.reload();
         }, 1000);
-        return;
     }
-
     updateGameUI();
-    setTimeout(fightRound, 1000);
 }
 
 // 初始化RPG核心事件
@@ -115,11 +167,44 @@ function initRPG() {
     gameElements.fightButton.addEventListener('click', () => {
         if (isFighting) return;
         isFighting = true;
-        gameElements.fightButton.disabled = true;
-        gameElements.gachaButton.disabled = true;
-        gameElements.healButton.disabled = true;
         generateMonster();
-        fightRound();
+        updateGameUI();
+    });
+
+    gameElements.moveForwardButton.addEventListener('click', () => {
+        if (!isFighting) return;
+        if (distance <= 0) {
+            showToast('已贴身，无法更近！');
+            return;
+        }
+        distance--;
+        log(`玩家前进，距离减少到 ${distance} 格`);
+        updateGameUI();
+        monsterTurn();
+    });
+
+    gameElements.moveBackwardButton.addEventListener('click', () => {
+        if (!isFighting) return;
+        if (distance >= 10) {
+            showToast('已达最大距离！');
+            return;
+        }
+        distance++;
+        log(`玩家后退，距离增加到 ${distance} 格`);
+        updateGameUI();
+        monsterTurn();
+    });
+
+    gameElements.stayButton.addEventListener('click', () => {
+        if (!isFighting) return;
+        log('玩家原地不动');
+        updateGameUI();
+        monsterTurn();
+    });
+
+    gameElements.attackButton.addEventListener('click', () => {
+        if (!isFighting) return;
+        playerAttack();
     });
 
     gameElements.gachaButton.addEventListener('click', () => {

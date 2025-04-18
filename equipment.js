@@ -1,3 +1,14 @@
+// 武器LAI定义
+const weaponLai = {
+    '单手剑': 2,
+    '双手剑': 3,
+    '匕首': 1,
+    '法杖': 4,
+    '弓': 5,
+    '魔法书': 3,
+    '盾牌': 0 // 盾牌不影响LAI
+};
+
 // 更新装备栏UI
 function updateEquipmentUI() {
     if (player.equipment.mainHand) {
@@ -6,12 +17,12 @@ function updateEquipmentUI() {
             <div class="equipment-slot-info">
                 主手: 
                 <img src="${weaponImages[weapon.type]}" class="equipment-slot-icon">
-                ${weapon.name} (${weapon.type}, ${weapon.rarity}★)
+                ${weapon.name} (${weapon.type}, ${weapon.rarity}★, LAI=${weapon.lai})
             </div>
             <button class="action-button unequip-button" data-slot="mainHand">卸下</button>
         `;
     } else {
-        gameElements.mainHandSlot.innerHTML = '<div class="equipment-slot-info">主手: 无装备</div>';
+        gameElements.mainHandSlot.innerHTML = '<div class="equipment-slot-info">主手: 无装备 (LAI=1)</div>';
     }
 
     if (player.equipment.offHand) {
@@ -48,6 +59,8 @@ function updateEquipmentUI() {
             unequipWeapon(slot);
         });
     });
+
+    updateGameUI(); // 确保LAI更新
 }
 
 // 装备武器
@@ -93,7 +106,7 @@ function equipWeapon(index, slot) {
     if (slot === 'mainHand') {
         const attackBonus = weapon.baseStat || weapon.rarity * 10;
         player.attack += attackBonus;
-        log(`装备主手 "${weapon.name}" (${weapon.rarity}★)，攻击力提升 ${attackBonus}，当前攻击力: ${player.attack}`);
+        log(`装备主手 "${weapon.name}" (${weapon.rarity}★, LAI=${weapon.lai})，攻击力提升 ${attackBonus}，当前攻击力: ${player.attack}`);
         gameElements.playerAttack.classList.add('blink');
         gameElements.mainHandSlot.classList.add('glow');
     } else if (slot === 'offHand') {
