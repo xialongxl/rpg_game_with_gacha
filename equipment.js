@@ -1,14 +1,3 @@
-// 武器LAI定义
-const weaponLai = {
-    '单手剑': 2,
-    '双手剑': 3,
-    '匕首': 1,
-    '法杖': 4,
-    '弓': 5,
-    '魔法书': 3,
-    '盾牌': 0 // 盾牌不影响LAI
-};
-
 // 更新装备栏UI
 function updateEquipmentUI() {
     if (player.equipment.mainHand) {

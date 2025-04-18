@@ -45,17 +45,6 @@ const weaponImages = {
     "盾牌": "https://raw.githubusercontent.com/xialongxl/imgbox/refs/heads/main/templar-shield.png"
 };
 
-// 武器LAI定义
-const weaponLai = {
-    '单手剑': 2,
-    '双手剑': 3,
-    '匕首': 1,
-    '法杖': 4,
-    '弓': 5,
-    '魔法书': 3,
-    '盾牌': 0
-};
-
 let pityCounter = 0;
 const stats = { 7: 0, 6: 0, 5: 0, 4: 0, 3: 0, 2: 0, 1: 0, total: 0 };
 const wishEffect = document.getElementById('wish-effect');
@@ -141,7 +130,7 @@ function createWeapon(rarity) {
         type: type,
         rarity: rarity,
         description: desc,
-        lai: weaponLai[type] || 0 // 添加LAI属性
+        lai: weaponLai[type] || 0 // 使用utils.js的weaponLai
     };
 }
 
