@@ -570,6 +570,54 @@
             100% { box-shadow: 0 0 10px rgba(255, 215, 0, 0.5); }
         }
 
+        /* 强化面板样式 */
+        .enhance-panel {
+            display: none;
+            background: rgba(0, 0, 0, 0.8);
+            border-radius: 25px;
+            padding: 20px;
+            margin: 30px auto;
+            max-width: 600px;
+            box-shadow: 0 10px 20px rgba(0, 195, 255, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            position: relative;
+            z-index: 10;
+        }
+
+        .enhance-panel.active {
+            display: block;
+        }
+
+        .enhance-header {
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+        }
+
+        .enhance-info {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        .enhance-info p {
+            margin: 5px 0;
+        }
+
+        .enhance-select {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .enhance-button-panel {
+            display: flex;
+            justify-content: space-between;
+            gap: 20px;
+        }
+
         .action-button {
             padding: 5px 10px;
             border: none;
@@ -601,6 +649,10 @@
 
         .enhance-button {
             background: linear-gradient(135deg, #4caf50 0%, #2e7d32 100%);
+        }
+
+        .close-button {
+            background: linear-gradient(135deg, #757575 0%, #424242 100%);
         }
 
         .action-button:hover {
@@ -646,6 +698,25 @@
                 <button class="wish-button" id="fight-button">战斗</button>
                 <button class="wish-button wish-button-10" id="gacha-button">抽卡 (100金币)</button>
                 <button class="wish-button wish-button-heal" id="heal-button">回血 (10金币)</button>
+                <button class="wish-button enhance-button" id="open-enhance-button">强化武器</button>
+            </div>
+        </div>
+
+        <!-- 强化面板 -->
+        <div class="enhance-panel" id="enhance-panel">
+            <div class="enhance-header">武器强化</div>
+            <select class="enhance-select" id="enhance-weapon-select">
+                <option value="-1">选择武器</option>
+            </select>
+            <div class="enhance-info" id="enhance-info">
+                <p>武器信息: 未选择</p>
+                <p>强化等级: -</p>
+                <p>强化费用: -</p>
+                <p>成功率: -</p>
+            </div>
+            <div class="enhance-button-panel">
+                <button class="action-button enhance-button" id="enhance-confirm-button" disabled>强化</button>
+                <button class="action-button close-button" id="enhance-close-button">关闭</button>
             </div>
         </div>
 
@@ -1013,7 +1084,13 @@
             inventoryList: document.getElementById('inventory-list'),
             mainHandSlot: document.getElementById('main-hand-slot'),
             offHandSlot: document.getElementById('off-hand-slot'),
-            accessorySlot: document.getElementById('accessory-slot')
+            accessorySlot: document.getElementById('accessory-slot'),
+            enhancePanel: document.getElementById('enhance-panel'),
+            enhanceWeaponSelect: document.getElementById('enhance-weapon-select'),
+            enhanceInfo: document.getElementById('enhance-info'),
+            enhanceConfirmButton: document.getElementById('enhance-confirm-button'),
+            enhanceCloseButton: document.getElementById('enhance-close-button'),
+            openEnhanceButton: document.getElementById('open-enhance-button')
         };
 
         function updateGameUI() {
@@ -1046,7 +1123,6 @@
             // 主手
             if (player.equipment.mainHand) {
                 const weapon = player.equipment.mainHand;
-                const enhanceText = weapon.enhanceLevel > 0 ? ` +${weapon.enhanceLevel}` : '';
                 gameElements.mainHandSlot.innerHTML = `
                     <div class="equipment-slot-info">
                         主手: 
@@ -1062,7 +1138,6 @@
             // 副手
             if (player.equipment.offHand) {
                 const weapon = player.equipment.offHand;
-                const enhanceText = weapon.enhanceLevel > 0 ? ` +${weapon.enhanceLevel}` : '';
                 gameElements.offHandSlot.innerHTML = `
                     <div class="equipment-slot-info">
                         副手: 
@@ -1078,7 +1153,6 @@
             // 饰品
             if (player.equipment.accessory) {
                 const weapon = player.equipment.accessory;
-                const enhanceText = weapon.enhanceLevel > 0 ? ` +${weapon.enhanceLevel}` : '';
                 gameElements.accessorySlot.innerHTML = `
                     <div class="equipment-slot-info">
                         饰品: 
@@ -1121,7 +1195,6 @@
                 itemDiv.className = 'inventory-item';
                 const canEquipMainHand = ['单手剑', '双手剑', '法杖', '弓', '魔法书', '匕首'].includes(weapon.type);
                 const canEquipOffHand = ['盾牌', '匕首'].includes(weapon.type);
-                const enhanceText = weapon.enhanceLevel > 0 ? ` +${weapon.enhanceLevel}` : '';
                 itemDiv.innerHTML = `
                     <div class="inventory-item-info">${weapon.name} (${weapon.type}, ${weapon.rarity}★)</div>
                     <div class="inventory-item-actions">
@@ -1129,7 +1202,6 @@
                         ${canEquipOffHand ? `<button class="action-button equip-off-hand-button" data-index="${index}" data-slot="offHand">装备副手</button>` : ''}
                         <button class="action-button equip-accessory-button" data-index="${index}" data-slot="accessory">装备饰品</button>
                         <button class="action-button sell-button" data-index="${index}">出售 (${weapon.rarity * 20}金币)</button>
-                        <button class="action-button enhance-button" data-index="${index}">强化</button>
                     </div>
                 `;
                 gameElements.inventoryList.appendChild(itemDiv);
@@ -1149,14 +1221,96 @@
                     sellWeapon(index);
                 });
             });
-
-            document.querySelectorAll('.enhance-button').forEach(button => {
-                button.addEventListener('click', (e) => {
-                    const index = parseInt(e.target.getAttribute('data-index'));
-                    enhanceWeapon(index);
-                });
-            });
         }
+
+        // 强化面板逻辑
+        function updateEnhancePanel() {
+            const select = gameElements.enhanceWeaponSelect;
+            select.innerHTML = '<option value="-1">选择武器</option>';
+            player.inventory.forEach((weapon, index) => {
+                const option = document.createElement('option');
+                option.value = index;
+                option.textContent = `${weapon.name} (${weapon.type}, ${weapon.rarity}★)`;
+                select.appendChild(option);
+            });
+            updateEnhanceInfo(-1);
+        }
+
+        function updateEnhanceInfo(index) {
+            const infoDiv = gameElements.enhanceInfo;
+            if (index < 0 || index >= player.inventory.length) {
+                infoDiv.innerHTML = `
+                    <p>武器信息: 未选择</p>
+                    <p>强化等级: -</p>
+                    <p>强化费用: -</p>
+                    <p>成功率: -</p>
+                `;
+                gameElements.enhanceConfirmButton.disabled = true;
+                return;
+            }
+
+            const weapon = player.inventory[index];
+            const enhanceLevel = weapon.enhanceLevel || 0;
+            const maxLevel = 10;
+            const baseCost = 50;
+            const costMultiplier = 20;
+            const baseSuccessRate = 0.95;
+            const decreaseRate = 0.05;
+            const minSuccessRate = 0.3;
+
+            if (enhanceLevel >= maxLevel) {
+                infoDiv.innerHTML = `
+                    <p>武器信息: ${weapon.name} (${weapon.type}, ${weapon.rarity}★)</p>
+                    <p>强化等级: ${enhanceLevel}（已达最大等级）</p>
+                    <p>强化费用: -</p>
+                    <p>成功率: -</p>
+                `;
+                gameElements.enhanceConfirmButton.disabled = true;
+                return;
+            }
+
+            const cost = baseCost + weapon.rarity * costMultiplier * (enhanceLevel + 1);
+            const successRate = Math.max(
+                minSuccessRate,
+                baseSuccessRate * Math.pow(1 - decreaseRate, enhanceLevel)
+            );
+            const successRatePercent = (successRate * 100).toFixed(1);
+
+            infoDiv.innerHTML = `
+                <p>武器信息: ${weapon.name} (${weapon.type}, ${weapon.rarity}★)</p>
+                <p>强化等级: ${enhanceLevel}</p>
+                <p>强化费用: ${cost} 金币</p>
+                <p>成功率: ${successRatePercent}%</p>
+            `;
+            gameElements.enhanceConfirmButton.disabled = player.gold < cost;
+        }
+
+        gameElements.openEnhanceButton.addEventListener('click', () => {
+            if (player.inventory.length === 0) {
+                log('背包中没有武器可强化！');
+                return;
+            }
+            gameElements.enhancePanel.classList.add('active');
+            updateEnhancePanel();
+        });
+
+        gameElements.enhanceCloseButton.addEventListener('click', () => {
+            gameElements.enhancePanel.classList.remove('active');
+        });
+
+        gameElements.enhanceWeaponSelect.addEventListener('change', (e) => {
+            const index = parseInt(e.target.value);
+            updateEnhanceInfo(index);
+        });
+
+        gameElements.enhanceConfirmButton.addEventListener('click', () => {
+            const index = parseInt(gameElements.enhanceWeaponSelect.value);
+            if (index >= 0 && index < player.inventory.length) {
+                enhanceWeapon(index);
+                updateEnhancePanel();
+                updateEnhanceInfo(index);
+            }
+        });
 
         // 装备系统
         function equipWeapon(index, slot) {
@@ -1226,6 +1380,7 @@
             player.inventory.splice(index, 1);
             updateInventoryUI();
             updateGameUI();
+            updateEnhancePanel();
         }
 
         // 卸下装备
@@ -1272,6 +1427,7 @@
             player.equipment[slot] = null;
             updateInventoryUI();
             updateGameUI();
+            updateEnhancePanel();
         }
 
         // 出售系统
@@ -1285,6 +1441,7 @@
             player.inventory.splice(index, 1);
             updateInventoryUI();
             updateGameUI();
+            updateEnhancePanel();
         }
 
         // 检查升级
@@ -1396,6 +1553,7 @@
         // 初始化
         updateGameUI();
         updateInventoryUI();
+        updateEnhancePanel();
     </script>
     <script src="enhance.js"></script>
 </body>
