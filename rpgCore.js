@@ -6,7 +6,7 @@ let player = {
     maxHp: 100,
     attack: 10,
     defense: 0,
-    gold: 1000,
+    gold: 10000,
     inventory: [],
     inventoryCapacity: 10,
     equipment: { mainHand: null, offHand: null, accessory: null }
@@ -15,6 +15,7 @@ let player = {
 let monster = { hp: 0, attack: 0, lai: 0 };
 let battleCount = 0;
 let isFighting = false;
+let isBossFight = false;
 let playerPosition = 5; // 玩家格子索引（初始格子5）
 let monsterPosition = 0; // 怪物格子索引（初始格子0）
 let distance = Math.abs(playerPosition - monsterPosition) - 1; // 初始距离=4
@@ -77,6 +78,7 @@ function updateGameUI() {
 
     // 控制战斗按钮
     gameElements.fightButton.style.display = isFighting ? 'none' : 'inline-block';
+    gameElements.bossButton.style.display = isFighting ? 'none' : (gameElements.bossButton.style.display || 'none');
     gameElements.battleActions.style.display = isFighting ? 'flex' : 'none';
     gameElements.gachaButton.disabled = player.gold < 100 || isFighting;
     gameElements.healButton.disabled = player.gold < 10 || player.hp >= player.maxHp || isFighting;
@@ -103,8 +105,9 @@ function checkLevelUp() {
         gameElements.playerHp.classList.add('blink');
         gameElements.playerAttack.classList.add('blink');
         gameElements.playerDefense.classList.add('blink');
-        updateGameUI();
+        checkMapProgress(); // 检查地图进度
     }
+    updateGameUI();
 }
 
 // 生成新怪物
@@ -113,11 +116,12 @@ function generateMonster() {
     monster.hp = 20 + battleCount * 5;
     monster.attack = 5 + battleCount * 2;
     monster.lai = Math.min(1 + Math.floor(battleCount / 5), 3);
+    adjustMonsterStats(monster); // 地图强度调整
     playerPosition = 5; // 玩家格子5
     monsterPosition = 0; // 怪物格子0
     distance = Math.abs(playerPosition - monsterPosition) - 1; // 距离=4
     updateGameUI();
-    log(`第 ${battleCount} 次战斗开始！遇到怪物（生命值: ${monster.hp}, 攻击力: ${monster.attack}, 攻击距离: ${monster.lai}）`);
+    log(`第 ${battleCount} 次战斗开始！遇到${currentMap.name}的怪物（生命值: ${monster.hp}, 攻击力: ${monster.attack}, 攻击距离: ${monster.lai}）`);
 }
 
 // 玩家原地不动或攻击
@@ -133,10 +137,10 @@ function playerStayOrAttack() {
             log('魔法书精准打击，伤害翻倍！');
         }
         monster.hp -= damage;
-        log(`玩家攻击怪物，造成 ${damage} 点伤害，怪物剩余生命值: ${monster.hp}`);
+        log(`玩家攻击${isBossFight ? currentMap.boss.name : '怪物'}，造成 ${damage} 点伤害，${isBossFight ? currentMap.boss.name : '怪物'}剩余生命值: ${monster.hp}`);
         gameElements.monsterHp.classList.add('blink');
     } else {
-        log('玩家原地不动，怪物超出攻击范围');
+        log(`玩家原地不动，${isBossFight ? currentMap.boss.name : '怪物'}超出攻击范围`);
     }
 
     if (monster.hp <= 0) {
@@ -148,23 +152,20 @@ function playerStayOrAttack() {
 
 // 怪物回合
 function monsterTurn() {
-    const action = Math.random() < 0.5 ? 'move' : 'attack';
-    console.log(`Monster action: ${action}`);
-    if (action === 'move') {
+    if (distance <= monster.lai) {
+        // 玩家在攻击范围内，优先攻击
+        const damage = Math.max(1, monster.attack - player.defense);
+        player.hp -= damage;
+        log(`${isBossFight ? currentMap.boss.name : '怪物'}攻击玩家，造成 ${damage} 点伤害，玩家剩余生命值: ${player.hp}`);
+        gameElements.playerHp.classList.add('blink');
+    } else {
+        // 玩家不在攻击范围内，优先前进
         if (monsterPosition < playerPosition - 1 && monsterPosition < 10) {
             monsterPosition++; // 怪物前进
-            log(`怪物前进，距离减少到 ${distance} 格`);
+            distance = Math.abs(playerPosition - monsterPosition) - 1;
+            log(`${isBossFight ? currentMap.boss.name : '怪物'}前进，距离减少到 ${distance} 格`);
         } else {
-            log('怪物无法继续前进');
-        }
-    } else {
-        if (distance <= monster.lai) {
-            const damage = Math.max(1, monster.attack - player.defense);
-            player.hp -= damage;
-            log(`怪物攻击玩家，造成 ${damage} 点伤害，玩家剩余生命值: ${player.hp}`);
-            gameElements.playerHp.classList.add('blink');
-        } else {
-            log('玩家超出怪物攻击范围，怪物未造成伤害');
+            log(`${isBossFight ? currentMap.boss.name : '怪物'}无法继续前进`);
         }
     }
 
@@ -178,19 +179,27 @@ function monsterTurn() {
 // 结束战斗
 function endBattle(playerWon) {
     isFighting = false;
-    if (playerWon) {
+    if (isBossFight) {
+        endBossFight(playerWon); // 处理Boss战
+    }
+    if (playerWon && !isBossFight) {
         const goldReward = Math.floor(Math.random() * 31) + 20;
         const expReward = Math.floor(Math.random() * 11) + 10;
         player.gold += goldReward;
         player.exp += expReward;
         log(`怪物被击败！获得 ${goldReward} 金币和 ${expReward} 经验值`);
         checkLevelUp();
-    } else {
-        log('玩家被击败！游戏结束');
-        setTimeout(() => {
-            alert('游戏结束！你被击败了。');
-            location.reload();
-        }, 1000);
+    } else if (!playerWon) {
+        log(`玩家被${isBossFight ? currentMap.boss.name : '怪物'}击败！${isBossFight ? '可重新挑战' : '游戏结束'}`);
+        if (isBossFight) {
+            player.hp = player.maxHp; // Boss战失败，恢复HP
+            updateGameUI();
+        } else {
+            setTimeout(() => {
+                alert('游戏结束！你被击败了。');
+                location.reload();
+            }, 1000);
+        }
     }
     updateGameUI();
 }
@@ -211,6 +220,7 @@ function initRPG() {
             return;
         }
         playerPosition--; // 玩家前进
+        distance = Math.abs(playerPosition - monsterPosition) - 1;
         log(`玩家前进，距离减少到 ${distance} 格`);
         updateGameUI();
         monsterTurn();
@@ -223,6 +233,7 @@ function initRPG() {
             return;
         }
         playerPosition++; // 玩家后退
+        distance = Math.abs(playerPosition - monsterPosition) - 1;
         log(`玩家后退，距离增加到 ${distance} 格`);
         updateGameUI();
         monsterTurn();

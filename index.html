@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>幻想RPG与抽卡联动游戏（新战斗系统）</title>
+    <title>幻想RPG与抽卡联动游戏</title>
+    <link rel="stylesheet" href="mapSystem.css">
     <style>
         * {
             margin: 0;
@@ -686,6 +687,8 @@
                 <div>第 <span id="battle-count">0</span> 次战斗</div>
                 <div>怪物攻击距离: <span id="monster-lai">0</span></div>
             </div>
+            <!-- 地图信息 -->
+            <div id="map-info">当前地图：森林之地 (1-10级)</div>
             <!-- 距离度显示 -->
             <div class="distance-display">
                 <div>距离: <span id="distance">5</span> 格</div>
@@ -706,6 +709,7 @@
             <div class="log" id="battle-log"></div>
             <div class="action-buttons">
                 <button class="wish-button" id="fight-button">开始战斗</button>
+                <button class="wish-button" id="boss-button" style="display: none;">挑战地图王</button>
                 <button class="wish-button wish-button-10" id="gacha-button">抽卡 (100金币)</button>
                 <button class="wish-button wish-button-heal" id="heal-button">回血 (10金币)</button>
                 <button class="wish-button enhance-button" id="open-enhance-button">强化武器</button>
@@ -794,5 +798,6 @@
     <script src="equipment.js"></script>
     <script src="enhance.js"></script>
     <script src="main.js"></script>
+    <script src="mapSystem.js"></script>
 </body>
 </html>

@@ -17,6 +17,7 @@ const gameElements = {
     distanceGrid: document.getElementById('distance-grid'),
     battleLog: document.getElementById('battle-log'),
     fightButton: document.getElementById('fight-button'),
+    bossButton: document.getElementById('boss-button'),
     gachaButton: document.getElementById('gacha-button'),
     healButton: document.getElementById('heal-button'),
     openEnhanceButton: document.getElementById('open-enhance-button'),
@@ -46,7 +47,8 @@ const gameElements = {
     count2: document.getElementById('count-2'),
     count1: document.getElementById('count-1'),
     wishCount: document.getElementById('wish-count'),
-    toast: document.getElementById('toast')
+    toast: document.getElementById('toast'),
+    mapInfo: document.getElementById('map-info')
 };
 
 function initGame() {
@@ -65,6 +67,7 @@ function initGame() {
         console.error('updateEquipmentUI 未定义');
     }
     initEnhance(); // enhance.js
+    initMapSystem(); // mapSystem.js
 }
 
 // 确保DOM加载完成
