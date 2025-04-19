@@ -36,7 +36,7 @@ function enhanceWeapon(index) {
         weapon.name = weapon.enhanceLevel > 0 ? `${weapon.originalName}+${weapon.enhanceLevel}` : weapon.originalName;
         const attackBonus = Math.floor(weapon.rarity * (enhanceLevel + 1));
         weapon.baseStat = (weapon.baseStat || weapon.rarity * 10) + attackBonus;
-        log(`强化成功！${weapon.name} 提升到 +${weapon.enhanceLevel}，攻击力增加 ${attackBonus}`);
+        log(`强化成功！${weapon.name} 提升到 +${weapon.enhanceLevel}，攻击力增加 ${attackBonus}，当前攻击力: ${weapon.baseStat}`);
         console.log(`Enhanced weapon: ${weapon.name}, level: ${weapon.enhanceLevel}`); // 调试日志
     } else {
         log(`强化失败！${weapon.name} 保持在 +${enhanceLevel}`);
@@ -55,7 +55,7 @@ function updateEnhancePanel() {
         const displayName = (weapon.enhanceLevel || 0) > 0 ? `${weapon.originalName || weapon.name}+${weapon.enhanceLevel}` : weapon.originalName || weapon.name;
         const option = document.createElement('option');
         option.value = index;
-        option.textContent = `${displayName} (${weapon.type}, ${weapon.rarity}★, LAI=${weapon.lai})`;
+        option.textContent = `${displayName} (${weapon.type}, ${weapon.rarity}★, LAI=${weapon.lai}, 攻击力=${weapon.baseStat})`;
         select.appendChild(option);
     });
     updateEnhanceInfo(-1);
@@ -69,6 +69,8 @@ function updateEnhanceInfo(index) {
             <p>武器信息: 未选择</p>
             <p>强化等级: -</p>
             <p>LAI: -</p>
+            <p>攻击力: -</p>
+            <p>出售价格: -</p>
             <p>强化费用: -</p>
             <p>成功率: -</p>
             <p>强化效果: -</p>
@@ -92,6 +94,8 @@ function updateEnhanceInfo(index) {
             <p>武器信息: ${displayName} (${weapon.type}, ${weapon.rarity}★)</p>
             <p>强化等级: ${enhanceLevel}（已达最大等级）</p>
             <p>LAI: ${weapon.lai}</p>
+            <p>攻击力: ${weapon.baseStat}</p>
+            <p>出售价格: ${weapon.rarity * 20} 金币</p>
             <p>强化费用: -</p>
             <p>成功率: -</p>
             <p>强化效果: -</p>
@@ -111,6 +115,8 @@ function updateEnhanceInfo(index) {
         <p>武器信息: ${displayName} (${weapon.type}, ${weapon.rarity}★)</p>
         <p>强化等级: ${enhanceLevel}</p>
         <p>LAI: ${weapon.lai}</p>
+        <p>攻击力: ${weapon.baseStat}</p>
+        <p>出售价格: ${weapon.rarity * 20} 金币</p>
         <p>强化费用: ${cost} 金币</p>
         <p>成功率: ${successRatePercent}%</p>
         <p>强化效果: 攻击力 +${attackBonus}</p>

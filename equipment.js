@@ -6,7 +6,11 @@ function updateEquipmentUI() {
             <div class="equipment-slot-info">
                 主手: 
                 <img src="${weaponImages[weapon.type]}" class="equipment-slot-icon">
-                ${weapon.name} (${weapon.type}, ${weapon.rarity}★, LAI=${weapon.lai})
+                ${weapon.name} (${weapon.rarity}★)<br>
+                类型: ${weapon.type}<br>
+                LAI: ${weapon.lai}<br>
+                攻击力: ${weapon.baseStat}<br>
+                出售价格: ${weapon.rarity * 20} 金币
             </div>
             <button class="action-button unequip-button" data-slot="mainHand">卸下</button>
         `;
@@ -20,7 +24,10 @@ function updateEquipmentUI() {
             <div class="equipment-slot-info">
                 副手: 
                 <img src="${weaponImages[weapon.type]}" class="equipment-slot-icon">
-                ${weapon.name} (${weapon.type}, ${weapon.rarity}★)
+                ${weapon.name} (${weapon.rarity}★)<br>
+                类型: ${weapon.type}<br>
+                防御力: ${weapon.baseStat || weapon.rarity * 5}<br>
+                出售价格: ${weapon.rarity * 20} 金币
             </div>
             <button class="action-button unequip-button" data-slot="offHand">卸下</button>
         `;
@@ -34,7 +41,10 @@ function updateEquipmentUI() {
             <div class="equipment-slot-info">
                 饰品: 
                 <img src="${weaponImages[weapon.type]}" class="equipment-slot-icon">
-                ${weapon.name} (${weapon.type}, ${weapon.rarity}★)
+                ${weapon.name} (${weapon.rarity}★)<br>
+                类型: ${weapon.type}<br>
+                生命值加成: ${weapon.baseStat || weapon.rarity * 20}<br>
+                出售价格: ${weapon.rarity * 20} 金币
             </div>
             <button class="action-button unequip-button" data-slot="accessory">卸下</button>
         `;
@@ -77,7 +87,7 @@ function equipWeapon(index, slot) {
         }
 
         if (slot === 'mainHand') {
-            const attackBonus = oldWeapon.baseStat || oldWeapon.rarity * 10;
+            const attackBonus = oldWeapon.baseStat;
             player.attack -= attackBonus;
             log(`卸下主手装备 "${oldWeapon.name}"，攻击力减少 ${attackBonus}`);
             gameElements.playerAttack.classList.add('blink');
@@ -98,9 +108,9 @@ function equipWeapon(index, slot) {
 
     player.equipment[slot] = weapon;
     if (slot === 'mainHand') {
-        const attackBonus = weapon.baseStat || weapon.rarity * 10;
+        const attackBonus = weapon.baseStat;
         player.attack += attackBonus;
-        log(`装备主手 "${weapon.name}" (${weapon.rarity}★, LAI=${weapon.lai})，攻击力提升 ${attackBonus}，当前攻击力: ${player.attack}`);
+        log(`装备主手 "${weapon.name}" (${weapon.rarity}★, LAI=${weapon.lai}, 攻击力=${weapon.baseStat})，攻击力提升 ${attackBonus}，当前攻击力: ${player.attack}`);
         gameElements.playerAttack.classList.add('blink');
         gameElements.mainHandSlot.classList.add('glow');
     } else if (slot === 'offHand') {
@@ -147,7 +157,7 @@ function unequipWeapon(slot) {
     }
 
     if (slot === 'mainHand') {
-        const attackBonus = weapon.baseStat || weapon.rarity * 10;
+        const attackBonus = weapon.baseStat;
         player.attack -= attackBonus;
         log(`卸下主手装备 "${weapon.name}"，攻击力减少 ${attackBonus}，当前攻击力: ${player.attack}`);
         gameElements.playerAttack.classList.add('blink');

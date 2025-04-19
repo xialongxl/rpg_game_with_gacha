@@ -13,28 +13,6 @@ const weaponPrefixes = [
     "虚空", "混沌", "神圣", "龙息", "凤凰", "泰坦", "天使", "恶魔"
 ];
 
-const weaponDescriptions = [
-    "这把武器由远古巨龙的精血淬炼而成，",
-    "传说锻造时加入了星辰碎片，",
-    "曾被多位传奇英雄使用过，",
-    "表面刻有失传的古代符文，",
-    "在特定月相下会觉醒真正力量，",
-    "锻造时封印了强大恶魔的灵魂，",
-    "能吸收周围环境的元素能量，",
-    "历代主人都成为了传奇，",
-    "来自已经消失的精灵王国，"
-];
-
-const weaponEffects = [
-    "但使用它会逐渐侵蚀使用者的神志。",
-    "它的完整历史至今仍是个谜。",
-    "据说能斩断时空的裂隙。",
-    "在正义之人手中会发出圣洁光芒。",
-    "会记录所有持有者的战斗记忆。",
-    "能免疫九阶以下的魔法攻击。",
-    "使用时会产生龙吟般的共鸣。"
-];
-
 const weaponImages = {
     "单手剑": "https://raw.githubusercontent.com/xialongxl/imgbox/refs/heads/main/broadsword.png",
     "双手剑": "https://raw.githubusercontent.com/xialongxl/imgbox/refs/heads/main/relic-blade.png",
@@ -110,27 +88,12 @@ function createWeapon(rarity) {
     const suffix = suffixes[Math.floor(Math.random() * suffixes.length)];
     const name = weaponPrefixes[Math.floor(Math.random() * weaponPrefixes.length)] + suffix;
     
-    let desc = "";
-    const descParts = rarity >= 6 ? 4 : rarity >= 4 ? 3 : 2;
-    const usedIndices = new Set();
-    
-    for (let i = 0; i < descParts; i++) {
-        let idx;
-        do { idx = Math.floor(Math.random() * weaponDescriptions.length); } 
-        while (usedIndices.has(idx));
-        
-        usedIndices.add(idx);
-        desc += weaponDescriptions[idx];
-    }
-    
-    desc += weaponEffects[Math.floor(Math.random() * weaponEffects.length)];
-    
     return {
         name: name,
         type: type,
         rarity: rarity,
-        description: desc,
-        lai: weaponLai[type] || 0 // 使用utils.js的weaponLai
+        lai: weaponLai[type] || 0, // 使用utils.js的weaponLai
+        baseStat: rarity * 10 // 初始攻击力
     };
 }
 
@@ -158,7 +121,7 @@ function displayWeapon(weapon) {
         <img src="${weaponImages[weapon.type] || 'https://via.placeholder.com/150?text=未知武器'}" class="item-image">
         <div class="item-name">${weapon.name}</div>
         <div class="rarity-stars">${starsHTML}</div>
-        <div>${weapon.type} (LAI=${weapon.lai})</div>
+        <div>${weapon.type}</div>
     `;
     
     const back = document.createElement('div');
@@ -166,8 +129,10 @@ function displayWeapon(weapon) {
     back.innerHTML = `
         <div class="item-name">${weapon.name}</div>
         <div class="rarity-stars">${starsHTML}</div>
-        <div>${weapon.type} (LAI=${weapon.lai})</div>
-        <div class="item-description">${weapon.description}</div>
+        <div>类型: ${weapon.type}</div>
+        <div>LAI: ${weapon.lai}</div>
+        <div>攻击力: ${weapon.baseStat || weapon.rarity * 10}</div>
+        <div>出售价格: ${weapon.rarity * 20} 金币</div>
     `;
     
     card.appendChild(front);

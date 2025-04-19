@@ -51,6 +51,37 @@ const gameElements = {
     mapInfo: document.getElementById('map-info')
 };
 
+// 界面切换函数
+function switchSection(sectionId) {
+    document.querySelectorAll('.section').forEach(section => {
+        section.classList.remove('active');
+    });
+    document.querySelectorAll('.nav-button').forEach(button => {
+        button.classList.remove('active');
+    });
+
+    const targetSection = document.getElementById(sectionId);
+    if (targetSection) {
+        targetSection.classList.add('active');
+        // 更新对应界面的 UI
+        if (sectionId === 'game-section') {
+            updateGameUI();
+            updateMapUI();
+        } else if (sectionId === 'inventory-section') {
+            updateInventoryUI();
+            updateEquipmentUI();
+            updateEnhancePanel();
+        } else if (sectionId === 'gacha-section') {
+            updateStats();
+        }
+    }
+
+    const targetButton = document.querySelector(`.nav-button[data-section="${sectionId}"]`);
+    if (targetButton) {
+        targetButton.classList.add('active');
+    }
+}
+
 function initGame() {
     console.log('initGame开始，检查DOM引用');
     for (const [key, element] of Object.entries(gameElements)) {
@@ -68,6 +99,17 @@ function initGame() {
     }
     initEnhance(); // enhance.js
     initMapSystem(); // mapSystem.js
+
+    // 初始化导航栏事件
+    document.querySelectorAll('.nav-button').forEach(button => {
+        button.addEventListener('click', () => {
+            const sectionId = button.getAttribute('data-section');
+            switchSection(sectionId);
+        });
+    });
+
+    // 默认显示地图与战斗界面
+    switchSection('game-section');
 }
 
 // 确保DOM加载完成

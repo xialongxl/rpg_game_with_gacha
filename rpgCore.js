@@ -8,7 +8,7 @@ let player = {
     defense: 0,
     gold: 10000,
     inventory: [],
-    inventoryCapacity: 10,
+    inventoryCapacity: 9999,
     equipment: { mainHand: null, offHand: null, accessory: null }
 };
 
