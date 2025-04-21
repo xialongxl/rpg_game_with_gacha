@@ -14,7 +14,7 @@
         
         <!-- 导航栏 -->
         <div class="nav-bar">
-            <button class="nav-button" data-section="game-section">地图与战斗</button>
+            <button class="nav-button active" data-section="game-section">地图与战斗</button>
             <button class="nav-button" data-section="inventory-section">背包与装备</button>
             <button class="nav-button" data-section="gacha-section">抽卡</button>
         </div>
@@ -22,27 +22,56 @@
         <!-- 地图与战斗界面 -->
         <div class="section game-section active" id="game-section">
             <div class="game-panel">
+                <!-- 游戏状态显示部分保持不变 -->
+                <!-- 游戏状态显示部分 -->
+                <!-- 游戏状态显示部分 -->
                 <div class="status">
                     <div>玩家等级: <span id="player-level">1</span></div>
-                    <div>经验值: <span id="player-exp">0</span>/<span id="exp-to-level">50</span></div>
-                    <div>生命值: <span id="player-hp">100</span>/<span id="player-max-hp">100</span></div>
-                </div>
-                <div class="status">
+                    <div>攻击距离: <span id="player-lai">1</span></div>
                     <div>攻击力: <span id="player-attack">10</span></div>
                     <div>防御力: <span id="player-defense">0</span></div>
                     <div>金币: <span id="player-gold">0</span></div>
+                    <!-- 经验条 -->
+                    <div class="exp-bar-container" id="exp-container">
+                        <div class="exp-bar" style="width: 0%"></div>
+                        <div class="exp-text" id="exp-text">经验值：<span id="player-exp">0</span>/<span id="exp-to-level">50</span></div>
+                    </div>
+                    <!-- 玩家血条 -->
+                    <div class="health-bar-container">
+                        <div class="health-bar" style="width: 100%"></div>
+                        <div class="health-text" id="health-text">生命值：<span id="player-hp">100</span>/<span id="player-max-hp">100</span></div>
+                    </div>
+                    <!-- 敌人血条 -->
+                    <div class="enemy-health-bar-container" id="enemy-health-container" style="display: none;">
+                        <div class="enemy-health-bar" style="width: 100%"></div>
+                        <div class="enemy-health-text">怪物生命值：<span id="monster-hp">0</span>/<span id="monster-max-hp">0</span></div>
+                    </div>
                 </div>
+                
                 <div class="status">
-                    <div>攻击距离: <span id="player-lai">1</span></div>
-                    <div>怪物生命值: <span id="monster-hp">0</span></div>
                     <div>怪物攻击力: <span id="monster-attack">0</span></div>
-                </div>
-                <div class="status">
                     <div>第 <span id="battle-count">0</span> 次战斗</div>
                     <div>怪物攻击距离: <span id="monster-lai">0</span></div>
                 </div>
+
+                
                 <!-- 地图信息 -->
-                <div id="map-info">当前地图：森林之地 (1-10级)</div>
+                <div id="map-info" class="map-info-text">当前地图：森林之地 (1-10级)</div>
+                
+                <!-- 地图控制按钮 -->
+                <div class="map-controls">
+                    <button id="prev-map-btn" class="map-nav-button">← 上一地图</button>
+                    <button id="next-map-btn" class="map-nav-button">下一地图 →</button>
+                </div>
+                
+                <!-- Boss按钮容器 -->
+                <div class="map-controls">
+                    <button id="boss-button" class="map-nav-button">
+                        <span id="boss-button-text">挑战地图王</span>
+                        <span id="boss-button-hint"></span>
+                    </button>
+                </div>
+                
                 <!-- 距离度显示 -->
                 <div class="distance-display">
                     <div>距离: <span id="distance">5</span> 格</div>
@@ -60,14 +89,18 @@
                         <div class="grid-cell"></div>
                     </div>
                 </div>
+                
                 <div class="log" id="battle-log"></div>
+                
                 <div class="action-buttons">
                     <button class="wish-button" id="fight-button">开始战斗</button>
-                    <button class="wish-button" id="boss-button" style="display: none;">挑战地图王</button>
-                    <button class="wish-button wish-button-10" id="gacha-button">抽卡 (100金币)</button>
                     <button class="wish-button wish-button-heal" id="heal-button">回血 (10金币)</button>
-                    <button class="wish-button enhance-button" id="open-enhance-button">强化武器</button>
+                    <button class="action-button" id="quick-save-btn">快速存档</button>
+                    <button class="action-button" id="quick-load-btn">快速读档</button>
+                    <button class="action-button" id="manage-saves-btn">管理存档</button>
+                    <!-- 移除原来的强化按钮 -->
                 </div>
+                
                 <!-- 战斗操作按钮 -->
                 <div class="action-buttons battle-actions" id="battle-actions" style="display: none;">
                     <button class="action-button move-forward-button" id="move-forward-button">前进</button>
@@ -101,7 +134,7 @@
             <div class="equipment-panel">
                 <div class="equipment-header">装备栏</div>
                 <div class="equipment-slot" id="main-hand-slot">
-                    <div class="equipment-slot-info">主手: 无装备</div>
+                    <div class="equipment-slot-info">主手: 无装备 (LAI=1)</div>
                 </div>
                 <div class="equipment-slot" id="off-hand-slot">
                     <div class="equipment-slot-info">副手: 无装备</div>
@@ -111,14 +144,17 @@
                 </div>
             </div>
 
-            <!-- 背包面板 -->
+            <!-- 背包面板 - 添加强化按钮 -->
             <div class="inventory-panel">
-                <div class="inventory-header">背包（<span id="inventory-count">0</span>/9999）</div>
+                <div class="inventory-header">
+                    背包（<span id="inventory-count">0</span>/9999）
+                    <button class="enhance-button" id="open-enhance-button">强化武器</button>
+                </div>
                 <div class="inventory-list" id="inventory-list"></div>
             </div>
         </div>
 
-        <!-- 抽卡界面 -->
+        <!-- 抽卡界面保持不变 -->
         <div class="section gacha-section" id="gacha-section">
             <!-- 抽卡统计面板 -->
             <div class="stats-panel">
@@ -139,8 +175,14 @@
             </div>
         
             <div class="button-group">
-                <button class="wish-button" id="wish-button">抽取武器 (1次)</button>
-                <button class="wish-button wish-button-10" id="wish-button-10">抽取武器 (10次)</button>
+                <button class="wish-button" id="wish-button">
+                    抽取武器 (1次)
+                    <span class="price-tag">100 金币</span>
+                </button>
+                <button class="wish-button wish-button-10" id="wish-button-10">
+                    抽取武器 (10次)
+                    <span class="price-tag">550 金币</span>
+                </button>
             </div>
         
             <div class="wish-results" id="wish-results"></div>
@@ -150,15 +192,31 @@
     <div class="wish-effect" id="wish-effect">
         <img class="effect-content" src="https://static.wikia.nocookie.net/to-aru-majutsu-no-index/images/1/12/Pentagram-GreatGold.png" alt="Wish Effect">
     </div>
+            <!-- 存档管理模态框 -->
+        <div id="save-modal" class="modal">
+            <div class="modal-content">
+                <span class="close">&times;</span>
+                <h2>存档管理</h2>
+                <div class="save-slots" id="save-slots">
+                    <!-- 存档位将在这里动态生成 -->
+                </div>
+                <div class="import-export-actions">
+                    <button class="action-button" id="export-save-btn">导出当前存档</button>
+                    <button class="action-button" id="import-save-btn">导入存档</button>
+                </div>
+            </div>
+        </div>
 
     <!-- 加载模块化JS文件 -->
     <script src="utils.js"></script>
-    <script src="gacha.js"></script>
     <script src="rpgCore.js"></script>
     <script src="inventory.js"></script>
     <script src="equipment.js"></script>
     <script src="enhance.js"></script>
-    <script src="main.js"></script>
+    <script src="gacha.js"></script>
     <script src="mapSystem.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/lz-string@1.4.4/libs/lz-string.min.js"></script>
+    <script src="saveSystem.js"></script>
+    <script src="main.js"></script>
 </body>
 </html>

@@ -23,11 +23,24 @@ const weaponImages = {
     "盾牌": "https://raw.githubusercontent.com/xialongxl/imgbox/refs/heads/main/templar-shield.png"
 };
 
+const rarityCoefficients = {
+    1: { min: 0.8, max: 1.0 },
+    2: { min: 1.0, max: 1.2 },
+    3: { min: 1.2, max: 1.5 },
+    4: { min: 1.5, max: 2.0 },
+    5: { min: 2.0, max: 3.0 },
+    6: { min: 3.0, max: 4.0 },
+    7: { min: 4.0, max: 5.0 }
+};
+
+const disassembleValues = {
+    1: 5, 2: 15, 3: 30, 4: 60, 5: 120, 6: 240, 7: 0
+};
+
 let pityCounter = 0;
-const stats = { 7: 0, 6: 0, 5: 0, 4: 0, 3: 0, 2: 0, 1: 0, total: 0 };
+let stats = { 7: 0, 6: 0, 5: 0, 4: 0, 3: 0, 2: 0, 1: 0, total: 0 };
 const wishEffect = document.getElementById('wish-effect');
 
-// 更新抽卡统计UI
 function updateStats() {
     gameElements.pityCount.textContent = pityCounter;
     gameElements.pityProgress.style.width = `${(pityCounter / 90) * 100}%`;
@@ -41,7 +54,110 @@ function updateStats() {
     gameElements.count1.textContent = stats[1];
 }
 
-// 生成单把武器
+function calculateWeaponStats(rarity, type) {
+    const baseValue = 50;
+    const coeffRange = rarityCoefficients[rarity];
+    const randomCoeff = coeffRange.min + Math.random() * (coeffRange.max - coeffRange.min);
+    const randomFactor = 0.9 + Math.random() * 0.2;
+    
+    const power = Math.round(baseValue * Math.pow(randomCoeff, 2) * randomFactor);
+    
+    return {
+        attack: type === '盾牌' ? 0 : power,
+        defense: type === '盾牌' ? power : 0,
+        sellValue: disassembleValues[rarity]
+    };
+}
+
+function createWeapon(rarity) {
+    const types = Object.keys(weaponTypes);
+    const type = types[Math.floor(Math.random() * types.length)];
+    const suffixes = weaponTypes[type];
+    const suffix = suffixes[Math.floor(Math.random() * suffixes.length)];
+    const name = weaponPrefixes[Math.floor(Math.random() * weaponPrefixes.length)] + suffix;
+    
+    const { attack, defense, sellValue } = calculateWeaponStats(rarity, type);
+    
+    return {
+        name: name,
+        type: type,
+        rarity: rarity,
+        lai: weaponLai[type] || 0,
+        image: weaponImages[type],
+        attack: attack,
+        defense: defense,
+        sellValue: sellValue,
+        createdAt: new Date().toISOString()
+    };
+}
+
+function displayWeapon(weapon) {
+    const item = document.createElement('div');
+    item.className = 'wish-item';
+    
+    const card = document.createElement('div');
+    card.className = 'wish-card';
+    
+    const starColors = {
+        1: '#f5f5f5', 2: '#4caf50', 3: '#2196f3', 4: '#9c27b0',
+        5: '#ffd700', 6: '#ff9800', 7: '#ff0000'
+    };
+    
+    let starsHTML = '';
+    for (let i = 0; i < weapon.rarity; i++) {
+        starsHTML += `<span class="star" style="color: ${starColors[weapon.rarity]}">★</span>`;
+    }
+    
+    const front = document.createElement('div');
+    front.className = `wish-card-front rarity-${weapon.rarity}`;
+    front.innerHTML = `
+        <img src="${weapon.image}" class="item-image">
+        <div class="item-name">${weapon.name}</div>
+        <div class="rarity-stars">${starsHTML}</div>
+        <div>${weapon.type}</div>
+    `;
+    
+    const back = document.createElement('div');
+    back.className = `wish-card-back rarity-${weapon.rarity}`;
+    back.innerHTML = `
+        <div class="item-name">${weapon.name}</div>
+        <div class="rarity-stars">${starsHTML}</div>
+        <div>${weapon.type}</div>
+        <div>LAI: ${weapon.lai}</div>
+        ${weapon.type === '盾牌' ? 
+            `<div>防御力: ${weapon.defense}</div>` : 
+            `<div>攻击力: ${weapon.attack}</div>`}
+        <div>出售价格: ${weapon.sellValue} 金币</div>
+    `;
+    
+    card.appendChild(front);
+    card.appendChild(back);
+    item.appendChild(card);
+    
+    card.addEventListener('click', function() {
+        this.classList.toggle('flipped');
+    });
+    
+    gameElements.results.appendChild(item);
+    return weapon;
+}
+
+function wishAnimation(count, callback) {
+    wishEffect.classList.add('active');
+    gameElements.results.innerHTML = '';
+    
+    setTimeout(() => {
+        wishEffect.classList.remove('active');
+        setTimeout(() => {
+            const results = [];
+            for (let i = 0; i < count; i++) {
+                results.push(generateWeapon());
+            }
+            callback(results);
+        }, 300);
+    }, 3000);
+}
+
 function generateWeapon() {
     let rarity;
     const rand = Math.random();
@@ -80,91 +196,6 @@ function generateWeapon() {
     return createWeapon(rarity);
 }
 
-// 创建武器对象
-function createWeapon(rarity) {
-    const types = Object.keys(weaponTypes);
-    const type = types[Math.floor(Math.random() * types.length)];
-    const suffixes = weaponTypes[type];
-    const suffix = suffixes[Math.floor(Math.random() * suffixes.length)];
-    const name = weaponPrefixes[Math.floor(Math.random() * weaponPrefixes.length)] + suffix;
-    
-    return {
-        name: name,
-        type: type,
-        rarity: rarity,
-        lai: weaponLai[type] || 0, // 使用utils.js的weaponLai
-        baseStat: rarity * 10 // 初始攻击力
-    };
-}
-
-// 显示武器卡片
-function displayWeapon(weapon) {
-    const item = document.createElement('div');
-    item.className = 'wish-item';
-    
-    const card = document.createElement('div');
-    card.className = 'wish-card';
-    
-    const starColors = {
-        1: '#f5f5f5', 2: '#4caf50', 3: '#2196f3', 4: '#9c27b0',
-        5: '#ff9800', 6: '#ffd700', 7: '#ff0000'
-    };
-    
-    let starsHTML = '';
-    for (let i = 0; i < weapon.rarity; i++) {
-        starsHTML += `<span class="star" style="color: ${starColors[weapon.rarity]}">★</span>`;
-    }
-    
-    const front = document.createElement('div');
-    front.className = `wish-card-front rarity-${weapon.rarity}`;
-    front.innerHTML = `
-        <img src="${weaponImages[weapon.type] || 'https://via.placeholder.com/150?text=未知武器'}" class="item-image">
-        <div class="item-name">${weapon.name}</div>
-        <div class="rarity-stars">${starsHTML}</div>
-        <div>${weapon.type}</div>
-    `;
-    
-    const back = document.createElement('div');
-    back.className = `wish-card-back rarity-${weapon.rarity}`;
-    back.innerHTML = `
-        <div class="item-name">${weapon.name}</div>
-        <div class="rarity-stars">${starsHTML}</div>
-        <div>类型: ${weapon.type}</div>
-        <div>LAI: ${weapon.lai}</div>
-        <div>攻击力: ${weapon.baseStat || weapon.rarity * 10}</div>
-        <div>出售价格: ${weapon.rarity * 20} 金币</div>
-    `;
-    
-    card.appendChild(front);
-    card.appendChild(back);
-    item.appendChild(card);
-    
-    card.addEventListener('click', function() {
-        this.classList.toggle('flipped');
-    });
-    
-    gameElements.results.appendChild(item);
-    return weapon;
-}
-
-// 抽卡动画
-function wishAnimation(count, callback) {
-    wishEffect.classList.add('active');
-    gameElements.results.innerHTML = '';
-    
-    setTimeout(() => {
-        wishEffect.classList.remove('active');
-        setTimeout(() => {
-            const results = [];
-            for (let i = 0; i < count; i++) {
-                results.push(generateWeapon());
-            }
-            callback(results);
-        }, 300);
-    }, 3000);
-}
-
-// 创建背景粒子效果
 function createParticles() {
     const particleBg = document.getElementById('particle-bg');
     for (let i = 0; i < 50; i++) {
@@ -179,7 +210,6 @@ function createParticles() {
     }
 }
 
-// 预加载图片
 function preloadImage(url) {
     const img = new Image();
     img.src = url;
@@ -187,19 +217,32 @@ function preloadImage(url) {
     img.onerror = () => console.error('Failed to load image:', url);
 }
 
-// 初始化抽卡系统
 function initGacha() {
-    gameElements.btnSingle.addEventListener('click', () => {
+    gameElements.wishButton.addEventListener('click', () => {
+        if (player.gold < 100) {
+            showToast(`金币不足，需要100金币抽一次！当前金币：${player.gold}`);
+            return;
+        }
+        player.gold -= 100;
+        updateGameUI();
+        log('消耗100金币进行抽卡...');
         wishAnimation(1, (results) => {
             results.forEach((weapon) => {
                 const newWeapon = displayWeapon(weapon);
-                addToInventory(newWeapon); // 依赖inventory.js
+                addToInventory(newWeapon);
             });
             updateStats();
         });
     });
 
-    gameElements.btnMulti.addEventListener('click', () => {
+    gameElements.wishButton10.addEventListener('click', () => {
+        if (player.gold < 550) {
+            showToast(`金币不足，需要550金币抽十次！当前金币：${player.gold}`);
+            return;
+        }
+        player.gold -= 550;
+        updateGameUI();
+        log('消耗550金币进行十连抽...');
         wishAnimation(10, (results) => {
             results.forEach((weapon, i) => {
                 setTimeout(() => {

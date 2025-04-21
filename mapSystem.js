@@ -12,7 +12,9 @@ const maps = [
 ];
 
 let currentMap = maps[0];
-let unlockedMaps = [1]; // 已解锁地图（初始解锁地图1）
+let unlockedMaps = [1];
+let isManualMapSwitch = false;
+let isBossAvailable = false;
 
 // 获取当前地图
 function getCurrentMap(level) {
@@ -24,71 +26,116 @@ function updateMapUI() {
     if (gameElements.mapInfo) {
         gameElements.mapInfo.textContent = `当前地图：${currentMap.name} (${currentMap.levelRange[0]}-${currentMap.levelRange[1]}级)`;
     }
+    
+    // 更新地图切换按钮状态
+    const prevBtn = document.getElementById('prev-map-btn');
+    const nextBtn = document.getElementById('next-map-btn');
+    
+    if (prevBtn) {
+        prevBtn.disabled = !unlockedMaps.includes(currentMap.id - 1);
+    }
+    if (nextBtn) {
+        nextBtn.disabled = !unlockedMaps.includes(currentMap.id + 1);
+    }
+    
+    // 更新Boss按钮状态
+    updateBossButton();
 }
 
-// 检查地图进度（在玩家升级时调用）
-function checkMapProgress() {
-    const newMap = getCurrentMap(player.level);
-    if (newMap.id !== currentMap.id) {
-        currentMap = newMap;
-        log(`进入新地图：${currentMap.name} (${currentMap.levelRange[0]}-${currentMap.levelRange[1]}级)`);
-        updateMapUI();
-    }
-    // 显示Boss挑战按钮
-    if (player.level >= currentMap.levelRange[1] && !unlockedMaps.includes(currentMap.id + 1) && gameElements.bossButton) {
-        log(`达到${player.level}级！可挑战地图${currentMap.name} Boss：${currentMap.boss.name}`);
+// 更新Boss按钮状态
+function updateBossButton() {
+    if (!gameElements.bossButton) return;
+    
+    const hintElement = document.getElementById('boss-button-hint');
+    
+    // 检查Boss是否可用
+    isBossAvailable = player.level >= currentMap.levelRange[1] && 
+                     !unlockedMaps.includes(currentMap.id + 1);
+    
+    if (isBossAvailable) {
         gameElements.bossButton.style.display = 'inline-block';
-    } else if (gameElements.bossButton) {
+        if (hintElement) {
+            hintElement.textContent = `可挑战：${currentMap.boss.name}`;
+        }
+        log(`达到${player.level}级！可挑战Boss：${currentMap.boss.name}`);
+    } else {
         gameElements.bossButton.style.display = 'none';
+        if (hintElement) {
+            hintElement.textContent = unlockedMaps.includes(currentMap.id + 1) 
+                ? "(已击败)" 
+                : `(需达到${currentMap.levelRange[1]}级)`;
+        }
     }
 }
 
-// 生成Boss（供rpgCore.js调用）
+// 检查地图进度
+function checkMapProgress() {
+    if (isManualMapSwitch) {
+        isManualMapSwitch = false;
+        return;
+    }
+    
+//    const newMap = getCurrentMap(player.level);
+//    if (newMap.id !== currentMap.id) {
+//        currentMap = newMap;
+//        log(`进入新地图：${currentMap.name} (${currentMap.levelRange[0]}-${currentMap.levelRange[1]}级)`);
+//        updateMapUI();
+//    }
+    
+    // 更新Boss按钮状态
+    updateBossButton();
+}
+
+// 生成Boss
 function generateBoss() {
     isBossFight = true;
     const boss = currentMap.boss;
     monster.hp = boss.hp;
     monster.attack = boss.attack;
     monster.lai = boss.lai;
-    playerPosition = 5; // DQ初始化
+    playerPosition = 5;
     monsterPosition = 0;
-    distance = Math.abs(playerPosition - monsterPosition) - 1; // 距离=4
-    log(`挑战地图${currentMap.name} Boss：${boss.name}！（生命值: ${boss.hp}, 攻击力: ${boss.attack}, 攻击距离: ${boss.lai}）`);
+    distance = Math.abs(playerPosition - monsterPosition) - 1;
+    log(`挑战${currentMap.name}地图Boss：${boss.name}！（HP:${boss.hp} ATK:${boss.attack} LAI:${boss.lai}）`);
     updateGameUI();
 }
 
-// 结束Boss战（在endBattle中调用）
+// 结束Boss战
 function endBossFight(playerWon) {
     if (!isBossFight) return;
     isBossFight = false;
+    
     if (playerWon) {
-        if (currentMap.id < maps.length) {
-            unlockedMaps.push(currentMap.id + 1);
-            log(`击败${currentMap.boss.name}！解锁地图${currentMap.id + 1}：${maps[currentMap.id].name}`);
-        } else {
-            log(`击败${currentMap.boss.name}！混沌深渊已通关，可继续挑战！`);
-        }
         const goldReward = currentMap.id * 100;
         const expReward = currentMap.id * 50;
         player.gold += goldReward;
         player.exp += expReward;
         log(`获得奖励：${goldReward}金币，${expReward}经验值`);
-        if (gameElements.bossButton) {
-            gameElements.bossButton.style.display = 'none';
+        saveGame(AUTO_SAVE_SLOT, true);
+
+        // 解锁下一地图
+        const nextMapId = currentMap.id + 1;
+        if (nextMapId <= maps.length && !unlockedMaps.includes(nextMapId)) {
+            unlockedMaps.push(nextMapId);
+            log(`解锁新地图：${maps.find(m => m.id === nextMapId).name}`);
         }
-        checkMapProgress();
     } else {
-        player.hp = player.maxHp; // 失败后恢复HP，免费重试
-        log(`被${currentMap.boss.name}击败！可重新挑战`);
+        player.hp = player.maxHp;
+        log(`挑战失败！可重新尝试`);
     }
+    
+    // 更新UI状态
+    updateMapUI();
+    checkMapProgress();
 }
 
-// 调整怪物强度（供generateMonster调用）
+// 调整怪物强度
 function adjustMonsterStats(monster) {
     if (!isBossFight) {
         const baseHp = 20 + (currentMap.id - 1) * 10;
         const baseAttack = 5 + (currentMap.id - 1) * 2;
-        monster.hp = Math.round(monster.hp * (1 + (currentMap.id - 1) * 0.2)) + baseHp;
+        monster.maxHp = Math.round(monster.maxHp * (1 + (currentMap.id - 1) * 0.2)) + baseHp;
+        monster.hp = monster.maxHp;
         monster.attack = Math.round(monster.attack * (1 + (currentMap.id - 1) * 0.2)) + baseAttack;
         monster.lai = Math.min(monster.lai + Math.floor(currentMap.id / 3), 6);
     }
@@ -96,26 +143,40 @@ function adjustMonsterStats(monster) {
 
 // 初始化地图系统
 function initMapSystem() {
-    // 检查DOM元素
-    if (!gameElements.mapInfo) {
-        console.error('Map info element not found');
-    }
-    if (!gameElements.bossButton) {
-        console.error('Boss button element not found');
-    }
-    // 初始化UI
-    updateMapUI();
-    // Boss战按钮
+    // 初始化Boss按钮
     if (gameElements.bossButton) {
         gameElements.bossButton.addEventListener('click', () => {
-            if (isFighting) {
-                log('战斗中，无法挑战Boss！');
-                return;
+            if (!isFighting) {
+                isFighting = true;
+                generateBoss();
             }
-            isFighting = true;
-            generateBoss();
         });
     }
-    // 检查初始地图
+
+    // 初始化地图切换按钮
+    document.getElementById('prev-map-btn')?.addEventListener('click', () => {
+        const prevMap = maps.find(m => m.id === currentMap.id - 1);
+        if (prevMap && unlockedMaps.includes(prevMap.id)) {
+            isManualMapSwitch = true;
+            currentMap = prevMap;
+            log(`手动切换至：${currentMap.name}`);
+            updateMapUI();
+            checkMapProgress();
+        }
+    });
+
+    document.getElementById('next-map-btn')?.addEventListener('click', () => {
+        const nextMap = maps.find(m => m.id === currentMap.id + 1);
+        if (nextMap && unlockedMaps.includes(nextMap.id)) {
+            isManualMapSwitch = true;
+            currentMap = nextMap;
+            log(`手动切换至：${currentMap.name}`);
+            updateMapUI();
+            checkMapProgress();
+        }
+    });
+
+    // 初始状态更新
+    updateMapUI();
     checkMapProgress();
 }
