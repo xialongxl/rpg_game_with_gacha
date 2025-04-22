@@ -1,14 +1,15 @@
-// equipment.js - 完整未删减版本
-// 装备系统核心函数
+// equipment.js - 完整版本（含双手剑限制）
 function updateEquipmentUI() {
     console.log('更新装备UI:', player.equipment);
     
     // 主手装备
     if (player.equipment.mainHand) {
         const weapon = player.equipment.mainHand;
+        const isTwoHanded = weapon.type === '双手剑';
+        
         gameElements.mainHandSlot.innerHTML = `
-            <div class="equipment-slot-info">
-                <img src="${weaponImages[weapon.type]}" class="equipment-slot-icon">
+            <div class="equipment-slot-info ${isTwoHanded ? 'two-handed' : ''}">
+                <img src="${weaponImages[weapon.type]}" class="equipment-slot-icon" data-type="${weapon.type}">
                 ${weapon.name} (${weapon.rarity}★)<br>
                 类型: ${weapon.type}<br>
                 LAI: ${weapon.lai}<br>
@@ -25,8 +26,14 @@ function updateEquipmentUI() {
         `;
     }
 
-    // 副手装备
-    if (player.equipment.offHand) {
+    // 副手装备（双手剑时显示禁用状态）
+    if (player.equipment.mainHand?.type === '双手剑') {
+        gameElements.offHandSlot.innerHTML = `
+            <div class="equipment-slot-info disabled-slot">
+                (双手剑装备中，副手禁用)
+            </div>
+        `;
+    } else if (player.equipment.offHand) {
         const weapon = player.equipment.offHand;
         const statValue = weapon.type === '盾牌' ? weapon.defense : weapon.attack;
         const statName = weapon.type === '盾牌' ? '防御力' : '攻击力';
@@ -84,16 +91,34 @@ function updateEquipmentUI() {
 function equipWeapon(index, slot) {
     if (index < 0 || index >= player.inventory.length) {
         console.error('无效的装备索引:', index);
-        return;
+        return false;
     }
 
     const weapon = JSON.parse(JSON.stringify(player.inventory[index]));
-    const oldWeapon = player.equipment[slot];
+    
+    // 双手剑特殊规则
+    if (weapon.type === '双手剑') {
+        if (slot === 'offHand') {
+            showToast('双手剑只能装备在主手');
+            return false;
+        }
+        if (player.equipment.offHand) {
+            if (!confirm('装备双手剑将自动卸下副手装备，继续吗？')) return false;
+            unequipWeapon('offHand');
+        }
+    }
+    
+    // 盾牌特殊规则
+    if (weapon.type === '盾牌' && player.equipment.mainHand?.type === '双手剑') {
+        showToast('装备双手剑时不能使用盾牌');
+        return false;
+    }
 
     // 处理已装备的物品
+    const oldWeapon = player.equipment[slot];
     if (oldWeapon) {
         if (player.inventory.length >= player.inventoryCapacity) {
-            if (!confirm(`背包已满，是否丢弃当前${getSlotName(slot)}装备 "${oldWeapon.name}"？`)) return;
+            if (!confirm(`背包已满，是否丢弃当前${getSlotName(slot)}装备 "${oldWeapon.name}"？`)) return false;
             log(`丢弃了 ${oldWeapon.name}`);
         } else {
             player.inventory.push(oldWeapon);
@@ -109,10 +134,10 @@ function equipWeapon(index, slot) {
 
     log(`装备 ${weapon.name} 到${getSlotName(slot)}`);
     updateAllUI();
+    return true;
 
     function getSlotName(slot) {
-        const names = { mainHand: '主手', offHand: '副手', accessory: '饰品' };
-        return names[slot] || slot;
+        return { mainHand: '主手', offHand: '副手', accessory: '饰品' }[slot] || slot;
     }
 }
 
@@ -133,7 +158,6 @@ function unequipWeapon(slot) {
     updateAllUI();
 }
 
-// 属性计算辅助函数
 function applyEquipmentStats(weapon, slot) {
     if (slot === 'mainHand') {
         player.attack += weapon.attack;
@@ -174,7 +198,6 @@ function updateAllUI() {
     if (typeof updateEnhancePanel === 'function') updateEnhancePanel();
 }
 
-// 初始化函数
 function initEquipment() {
     console.log('正在初始化装备系统...');
     

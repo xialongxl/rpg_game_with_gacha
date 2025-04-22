@@ -177,13 +177,13 @@ function updateAllUI() {
 // 预加载资源
 function preloadResources() {
     const images = [
-        'https://raw.githubusercontent.com/xialongxl/imgbox/refs/heads/main/broadsword.png',
-        'https://raw.githubusercontent.com/xialongxl/imgbox/refs/heads/main/relic-blade.png',
-        'https://raw.githubusercontent.com/xialongxl/imgbox/refs/heads/main/wizard-staff.png',
-        'https://raw.githubusercontent.com/xialongxl/imgbox/refs/heads/main/pocket-bow.png',
-        'https://raw.githubusercontent.com/xialongxl/imgbox/refs/heads/main/spell-book.png',
-        'https://raw.githubusercontent.com/xialongxl/imgbox/refs/heads/main/bowie-knife.png',
-        'https://raw.githubusercontent.com/xialongxl/imgbox/refs/heads/main/templar-shield.png'
+        'img/broadsword.png',
+        'img/relic-blade.png',
+        'img/wizard-staff.png',
+        'img/pocket-bow.png',
+        'img/spell-book.png',
+        'img/bowie-knife.png',
+        'img/templar-shield.png'
     ];
     
     images.forEach(url => {

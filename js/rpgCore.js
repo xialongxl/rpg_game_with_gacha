@@ -16,6 +16,20 @@ let player = {
 };
 
 let monster = { name: "无名", maxHp:0, hp: 0, attack: 0, lai: 0 };
+
+// 添加在 monster 变量下方
+let chargeSystem = {
+    level: 0,        // 当前蓄力阶段(0-3)
+    isCharging: false,
+    chargeTimer: null,
+    multipliers: [1.0, 2.0, 2.5, 3.0], // 各阶段倍率
+    xKeyPressed: false, // 新增：跟踪X键状态
+    hasChargedThisTurn: false, // 新增：标记本回合是否已蓄力
+    skillNames: ["", "轻", "重", "超"], // 索引0为空，对应无蓄力状态
+    skillLv: ["", "！", "！！", "！！！"],
+    skillTags: ["", "地动山摇！", "山崩地裂！！", "毁天灭地！！！"]
+};
+
 let battleCount = 0;
 let isFighting = false;
 let isBossFight = false;
@@ -102,6 +116,17 @@ function updateGameUI() {
     if (!isFighting) {
         checkMapProgress();
     }
+
+    // 更新蓄力显示
+    updateChargeUI();
+    
+    // 双手剑类武器提示
+    const weapon = player.equipment.mainHand;
+    const chargeHint = document.getElementById('charge-hint');
+    if (chargeHint) {
+        chargeHint.style.display = (weapon && weapon.type === '双手剑') ? 'block' : 'none';
+    }
+
 }
 
 // 记录战斗日志
@@ -175,6 +200,17 @@ function playerStayOrAttack() {
         return;
     }
 
+    if (weapon && weapon.type === '双手剑' && chargeSystem.level > 0 && distance <= playerLai) {
+        const damage = Math.floor(player.attack * chargeSystem.multipliers[chargeSystem.level]);
+        monster.hp -= damage;
+        updateEnemyHealth();
+        log(`${player.name}释放${chargeSystem.skillNames[chargeSystem.level]}蓄力斩${chargeSystem.skillLv[chargeSystem.level]}${chargeSystem.skillTags[chargeSystem.level]}造成 ${damage} 点伤害${chargeSystem.skillLv[chargeSystem.level]}`);
+        chargeSystem.level = 0; // 重置蓄力
+        gameElements.monsterHp.classList.add('blink');
+        checkBattleEnd();
+        return;
+    }
+
     if (distance <= playerLai) {
         let rawDamage = player.attack;
         let damage = rawDamage;
@@ -202,22 +238,41 @@ function playerStayOrAttack() {
 }
 
 function castFireball() {
-    const weapon = player.equipment.mainHand;
-    if (!weapon || weapon.type !== '法杖') return;
+    // 1. 获取装备
+    const mainHand = player.equipment.mainHand;
+    const offHand = player.equipment.offHand;
     
-    // 火球术基础伤害（可调整）
-    const baseDamage = Math.floor(player.attack * 1.8); // 比普通攻击高80%
+    // 2. 强制主手必须装备法杖（否则直接返回）
+    if (!mainHand || mainHand.type !== '法杖') {
+        log(`${player.name}需要装备法杖才能施放火球术！`);
+        return;
+    }
+
+    // 3. 精确检测组合状态（主手法杖 + 副手魔法书）
+    const isCombo = offHand && offHand.type === '魔法书';  // true/false
+    
+    // 4. 动态计算伤害倍率和攻击力加成
+    const damageMultiplier = isCombo ? 2.5 : 1.8;
+    //const weaponAttack = mainHand.attack + (isCombo ? offHand.attack : 0);
+    
+    // 5. 最终伤害计算（包含减伤逻辑）
+    const baseDamage = Math.floor(player.attack * damageMultiplier);
     const mitigatedDamage = Math.min(Math.floor(monster.attack / 3), baseDamage); // 减伤较少
     const finalDamage = Math.max(1, baseDamage - mitigatedDamage);
+
+    // 6. 战斗日志输出
+    log(`<span class="fireball-text">${player.name}挥舞${mainHand.name}，释放火球术🔥！炽热的火球🔥飞向${monster.name}！</span>`);
     
-    // 特效和日志
-    log(`<span class="fireball-text">${player.name}释放火球术！炽热的火球飞向${monster.name}！</span>`);
     setTimeout(() => {
         monster.hp -= finalDamage;
         updateEnemyHealth();
-        log(`<span class="fireball-text">火球命中！造成 ${finalDamage} 点伤害（减伤 ${mitigatedDamage} 点），${monster.name}剩余生命值: ${monster.hp}</span>`);
+        
+        // 只有组合时才显示特殊提示
+        log(`<span class="fireball-text">${isCombo ? "🔥法杖+魔法书组合效果发动🔥" : ""}</span>`);
+        log(`<span class="fireball-text">火球🔥命中${monster.name}！造成 ${finalDamage} 点伤害（减免 ${mitigatedDamage}），剩余生命值: ${monster.hp}</span>`);
+        
         checkBattleEnd();
-    }, 800); // 延迟效果
+    }, 800);
 }
 
 // 辅助函数：获取敌人名称
@@ -259,6 +314,7 @@ function monsterTurn() {
     if (player.hp <= 0) {
         endBattle(false);
     } else {
+        chargeSystem.hasChargedThisTurn = false; // 标记已蓄力
         updateGameUI();
     }
 }
@@ -278,6 +334,7 @@ function endBattle(playerWon) {
         player.gold += goldReward;
         player.exp += expReward;
         log(`${monster.name || '怪物'}被击败！获得 ${goldReward} 金币和 ${expReward} 经验值`);
+        chargeSystem.hasChargedThisTurn = false; // 重置蓄力标记
         checkLevelUp();
         saveGame(AUTO_SAVE_SLOT, true);
     } 
@@ -302,9 +359,63 @@ function endBattle(playerWon) {
     
     const expContainer = document.getElementById('exp-container');
     if (expContainer) expContainer.style.display = 'block'; // 修正了这里的变量名错误
+
+    // 重置蓄力状态
+    chargeSystem.level = 0;
+    chargeSystem.isCharging = false;
+    clearTimeout(chargeSystem.chargeTimer);
+    updateChargeUI();
+
     
     // 4. 更新游戏状态
     updateGameUI();
+}
+
+// 蓄力系统控制
+// 修改startCharge和cancelCharge函数
+function startCharge() {
+    if (!isFighting || chargeSystem.isCharging || chargeSystem.hasChargedThisTurn) return;
+    
+    const weapon = player.equipment.mainHand;
+    if (!weapon || weapon.type !== '双手剑') return;
+    
+    chargeSystem.isCharging = true;
+    chargeSystem.chargeTimer = setTimeout(() => {
+        if (chargeSystem.level < 3) {
+            chargeSystem.level++;
+            chargeSystem.hasChargedThisTurn = true; // 标记已蓄力
+            log(`蓄力完成！当前阶段: ${chargeSystem.level}`);
+            updateChargeUI();
+        }
+        chargeSystem.isCharging = false;
+    }, 100); //蓄力时间（毫秒）
+}
+function cancelCharge() {
+    if (chargeSystem.chargeTimer) {
+        clearTimeout(chargeSystem.chargeTimer);
+        chargeSystem.isCharging = false;
+    }
+}
+// 新增X键控制函数
+function handleXKeyDown(e) {
+    if (e.key.toLowerCase() === 'x' && !chargeSystem.xKeyPressed) {
+        chargeSystem.xKeyPressed = true;
+        startCharge();
+    }
+}
+function handleXKeyUp(e) {
+    if (e.key.toLowerCase() === 'x' && chargeSystem.xKeyPressed) {
+        chargeSystem.xKeyPressed = false;
+        cancelCharge();
+    }
+}
+
+function updateChargeUI() {
+    const chargeDisplay = document.getElementById('charge-display');
+    if (chargeDisplay) {
+        chargeDisplay.innerHTML = `蓄力阶段: ${'◆'.repeat(chargeSystem.level)}${'◇'.repeat(3 - chargeSystem.level)}`;
+        chargeDisplay.className = `charge-level-${chargeSystem.level}`;
+    }
 }
 
 // 初始化RPG核心事件
@@ -363,6 +474,10 @@ function initRPG() {
         gameElements.playerHp.classList.add('blink');
         updateGameUI();
     });
+
+    // 添加键盘监听
+    document.addEventListener('keydown', handleXKeyDown);
+    document.addEventListener('keyup', handleXKeyUp);
 
     updateGameUI();
 }

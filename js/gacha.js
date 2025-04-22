@@ -14,13 +14,13 @@ const weaponPrefixes = [
 ];
 
 const weaponImages = {
-    "单手剑": "https://raw.githubusercontent.com/xialongxl/imgbox/refs/heads/main/broadsword.png",
-    "双手剑": "https://raw.githubusercontent.com/xialongxl/imgbox/refs/heads/main/relic-blade.png",
-    "法杖": "https://raw.githubusercontent.com/xialongxl/imgbox/refs/heads/main/wizard-staff.png",
-    "弓": "https://raw.githubusercontent.com/xialongxl/imgbox/refs/heads/main/pocket-bow.png",
-    "魔法书": "https://raw.githubusercontent.com/xialongxl/imgbox/refs/heads/main/spell-book.png",
-    "匕首": "https://raw.githubusercontent.com/xialongxl/imgbox/refs/heads/main/bowie-knife.png",
-    "盾牌": "https://raw.githubusercontent.com/xialongxl/imgbox/refs/heads/main/templar-shield.png"
+    "单手剑": "img/broadsword.png",
+    "双手剑": "img/relic-blade.png",
+    "法杖": "img/wizard-staff.png",
+    "弓": "img/pocket-bow.png",
+    "魔法书": "img/spell-book.png",
+    "匕首": "img/bowie-knife.png",
+    "盾牌": "img/templar-shield.png"
 };
 
 const rarityCoefficients = {

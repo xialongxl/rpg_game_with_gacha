@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>幻想RPG与抽卡联动游戏</title>
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
     <div class="particle-bg" id="particle-bg"></div>
@@ -53,6 +53,9 @@
                     <div>第 <span id="battle-count">0</span> 次战斗</div>
                     <div>怪物攻击距离: <span id="monster-lai">0</span></div>
                 </div>
+
+                <div id="charge-display" class="charge-ui">[X键蓄力] ◇◇◇</div>
+                <div id="charge-hint" class="charge-hint">装备双手剑时长按X键蓄力</div>
 
                 
                 <!-- 地图信息 -->
@@ -208,15 +211,15 @@
         </div>
 
     <!-- 加载模块化JS文件 -->
-    <script src="utils.js"></script>
-    <script src="rpgCore.js"></script>
-    <script src="inventory.js"></script>
-    <script src="equipment.js"></script>
-    <script src="enhance.js"></script>
-    <script src="gacha.js"></script>
-    <script src="mapSystem.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/rpgCore.js"></script>
+    <script src="js/inventory.js"></script>
+    <script src="js/equipment.js"></script>
+    <script src="js/enhance.js"></script>
+    <script src="js/gacha.js"></script>
+    <script src="js/mapSystem.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/lz-string@1.4.4/libs/lz-string.min.js"></script>
-    <script src="saveSystem.js"></script>
-    <script src="main.js"></script>
+    <script src="js/saveSystem.js"></script>
+    <script src="js/main.js"></script>
 </body>
 </html>

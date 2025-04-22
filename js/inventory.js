@@ -36,7 +36,7 @@ function updateInventoryUI() {
         itemDiv.classList.add(`rarity-${weapon.rarity}`);
         
         const canEquipMainHand = ['单手剑', '双手剑', '匕首', '法杖', '弓', '魔法书'].includes(weapon.type);
-        const canEquipOffHand = ['盾牌'].includes(weapon.type);
+        const canEquipOffHand = ['盾牌','魔法书'].includes(weapon.type);
         
         const statDisplay = weapon.type === '盾牌' ? 
             `防御力: ${weapon.defense}<br>` : 

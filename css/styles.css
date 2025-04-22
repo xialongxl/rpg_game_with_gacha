@@ -1073,3 +1073,30 @@ h1 {
     font-size: 0.9em;
     margin-top: 5px;
 }
+
+/* 蓄力UI */
+.charge-ui {
+    position: absolute;
+    bottom: 60px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0,0,0,0.7);
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 18px;
+    color: white;
+}
+
+.charge-level-1 { color: #ff9900; }
+.charge-level-2 { color: #ff6600; }
+.charge-level-3 { color: #ff3300; text-shadow: 0 0 10px #ff0000; }
+
+.charge-hint {
+    display: none;
+    position: absolute;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: #ff9900;
+    font-size: 14px;
+}
