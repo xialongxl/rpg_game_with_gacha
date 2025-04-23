@@ -32,19 +32,25 @@ jobs:
 
       - name: Update files
         run: |
-          # 1. 更新index.html
+          # 1. 更新index.html中的引用
           sed -i "s/\(src=['\"][^'\"]*\.js\)?v=[^'\"]*/\1?v=$VERSION/g" index.html
           sed -i "s/\(href=['\"][^'\"]*\.css\)?v=[^'\"]*/\1?v=$VERSION/g" index.html
 
-          # 2. 更新rpgCore.js (数字格式)
-          sed -i "s/\(version:\)[0-9.]\+/\1$VERSION/g" rpgCore.js
+          # 2. 更新js/rpgCore.js中的版本号（数字格式）
+          sed -i "s/\(version:\)[0-9.]\+/\1$VERSION/g" js/rpgCore.js
 
-          # 3. 更新saveSystem.js (字符串格式)
-          sed -i "s/\(const VERSION = '\)[^']*\('\)/\1$VERSION\2/g" saveSystem.js
+          # 3. 更新js/saveSystem.js中的版本号（字符串格式）
+          sed -i "s/\(const VERSION = '\)[^']*\('\)/\1$VERSION\2/g" js/saveSystem.js
+
+          # 验证修改
+          echo "=== 修改结果验证 ==="
+          grep -E "\.(js|css)\?v=" index.html
+          grep "version:" js/rpgCore.js
+          grep "const VERSION =" js/saveSystem.js
 
       - name: Commit changes
         run: |
-          git add index.html rpgCore.js saveSystem.js
+          git add index.html js/rpgCore.js js/saveSystem.js
           git diff --staged --quiet || git commit -m "Auto update version to $(date +%Y%m%d%H%M%S%3N)"
           git push origin main
 
