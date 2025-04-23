@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-Content-Type-Options" content="nosniff">
+    <meta http-equiv="Cache-Control" content="public, immutable, max-age=31536000">
+    <title>冒险者：无名英雄传</title>
+    <link rel="stylesheet" href="css/styles.css?v=20250424003048956">
+    <link rel="icon" href="img/favicon.png" type="image/png">
+</head>
+<body>
+    <div class="particle-bg" id="particle-bg"></div>
+    <div class="toast" id="toast"></div>
+    <div class="container">
+        <h1>冒险者：无名英雄传</h1>
+        
+        <!-- 导航栏 -->
+        <div class="nav-bar">
+            <button class="nav-button active" data-section="game-section">地图与战斗</button>
+            <button class="nav-button" data-section="inventory-section">背包与装备</button>
+            <button class="nav-button" data-section="gacha-section">抽卡</button>
+        </div>
+
+        <!-- 地图与战斗界面 -->
+        <div class="section game-section active" id="game-section">
+            <div class="game-panel">
+                <!-- 游戏状态显示部分 -->
+                <div class="status">
+                    <div>玩家等级: <span id="player-level">1</span></div>
+                    <div>直线攻击距离: <span id="player-lai">1</span></div>
+                    <div>攻击力: <span id="player-attack">10</span></div>
+                    <div>防御力: <span id="player-defense">0</span></div>
+                    <div>金币: <span id="player-gold">0</span></div>
+                    <!-- 经验条 -->
+                    <div class="exp-bar-container" id="exp-container">
+                        <div class="exp-bar"></div>
+                        <div class="exp-text" id="exp-text">经验值：<span id="player-exp">0</span>/<span id="exp-to-level">50</span></div>
+                    </div>
+                    <!-- 敌人血条 -->
+                    <div class="enemy-health-bar-container" id="enemy-health-container" style="display: none;">
+                        <div class="enemy-health-bar"></div>
+                        <div class="enemy-health-text">怪物生命值：<span id="monster-hp">0</span>/<span id="monster-max-hp">0</span></div>
+                    </div>
+                    <!-- 玩家血条 -->
+                    <div class="health-bar-container">
+                        <div class="health-bar"></div>
+                        <div class="health-text" id="health-text">生命值：<span id="player-hp">100</span>/<span id="player-max-hp">100</span></div>
+                    </div>
+                </div>
+                
+                <div class="status">
+                    <div>怪物攻击力: <span id="monster-attack">0</span></div>
+                    <div>第 <span id="battle-count">0</span> 次战斗</div>
+                    <div>怪物攻击距离: <span id="monster-lai">0</span></div>
+                </div>
+
+                <div id="charge-display" class="charge-ui">[X键蓄力] ◇◇◇</div>
+                <div id="charge-hint" class="charge-hint">装备双手剑时长按X键蓄力</div>
+                
+                <div id="player-name-container">
+                    冒险者姓名：<span id="display-name">无名</span>
+                    <input type="text" id="name-input" style="display:none;" maxlength="10" aria-label="输入新名字">
+                    <button id="edit-name-btn">改名</button>
+                </div>
+                
+                <!-- 地图信息 -->
+                <div id="map-info" class="map-info-text">当前地图：森林之地 (1-10级)</div>
+                
+                <!-- 地图控制按钮 -->
+                <div class="map-controls">
+                    <button id="prev-map-btn" class="map-nav-button">← 上一地图</button>
+                    <button id="next-map-btn" class="map-nav-button">下一地图 →</button>
+                </div>
+                
+                <!-- Boss按钮容器 -->
+                <div class="map-controls">
+                    <button id="boss-button" class="map-nav-button">
+                        <span id="boss-button-text">挑战地图王</span>
+                        <span id="boss-button-hint"></span>
+                    </button>
+                </div>
+                
+                <!-- 距离度显示 -->
+                <div class="distance-display">
+                    <div>距离: <span id="distance">5</span> 格</div>
+                    <div class="distance-grid" id="distance-grid">
+                        <div class="grid-cell"></div>
+                        <div class="grid-cell"></div>
+                        <div class="grid-cell"></div>
+                        <div class="grid-cell"></div>
+                        <div class="grid-cell"></div>
+                        <div class="grid-cell"></div>
+                        <div class="grid-cell"></div>
+                        <div class="grid-cell"></div>
+                        <div class="grid-cell"></div>
+                        <div class="grid-cell"></div>
+                        <div class="grid-cell"></div>
+                    </div>
+                </div>
+                
+                <div class="log" id="battle-log"></div>
+                
+                <div class="action-buttons">
+                    <button class="wish-button" id="fight-button">开始战斗</button>
+                    <button class="wish-button wish-button-heal" id="heal-button">回血 (10金币)</button>
+                    <button class="action-button" id="quick-save-btn">快速存档</button>
+                    <button class="action-button" id="quick-load-btn">快速读档</button>
+                    <button class="action-button" id="manage-saves-btn">管理存档</button>
+                </div>
+                
+                <!-- 战斗操作按钮 -->
+                <div class="action-buttons battle-actions" id="battle-actions" style="display: none;">
+                    <button class="action-button move-forward-button" id="move-forward-button">前进</button>
+                    <button class="action-button move-backward-button" id="move-backward-button">后退</button>
+                    <button class="action-button attack-button" id="attack-button">攻击</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 背包与装备界面 -->
+        <div class="section inventory-section" id="inventory-section">
+            <!-- 强化面板 -->
+            <div class="enhance-panel" id="enhance-panel">
+                <div class="enhance-header">武器强化</div>
+                <div class="enhance-control">
+                    <label for="enhance-weapon-select" class="enhance-label">选择强化武器</label>
+                    <select class="enhance-select" id="enhance-weapon-select" aria-labelledby="enhance-label" title="选择要强化的武器">
+                        <option value="-1">-- 请选择武器 --</option>
+                    </select>
+                </div>
+                <div class="enhance-info" id="enhance-info">
+                    <p>武器信息: 未选择</p>
+                    <p>强化等级: -</p>
+                    <p>强化费用: -</p>
+                    <p>成功率: -</p>
+                </div>
+                <div class="enhance-button-panel">
+                    <button class="action-button enhance-button" id="enhance-confirm-button">强化</button>
+                    <button class="action-button close-button" id="enhance-close-button">关闭</button>
+                </div>
+            </div>
+
+            <!-- 装备栏 -->
+            <div class="equipment-panel">
+                <div class="equipment-header">装备栏</div>
+                <div class="equipment-slot" id="main-hand-slot">
+                    <div class="equipment-slot-info">主手: 无装备 (直线攻击距离=1)</div>
+                </div>
+                <div class="equipment-slot" id="off-hand-slot">
+                    <div class="equipment-slot-info">副手: 无装备</div>
+                </div>
+                <div class="equipment-slot" id="accessory-slot">
+                    <div class="equipment-slot-info">饰品: 无装备</div>
+                </div>
+            </div>
+
+            <!-- 背包面板 -->
+            <div class="inventory-panel">
+                <div class="inventory-header-container">
+                    <div class="inventory-header">背包（<span id="inventory-count">0</span>/9999）</div>
+                    <button class="enhance-button" id="open-enhance-button">强化武器</button>
+                </div>
+                <div class="inventory-list" id="inventory-list"></div>
+            </div>
+        </div>
+
+        <!-- 抽卡界面 -->
+        <div class="section gacha-section" id="gacha-section">
+            <!-- 抽卡统计面板 -->
+            <div class="stats-panel">
+                <div class="pity-counter">
+                    <div>7星保底计数: <span id="pity-count">0</span>/90</div>
+                    <div class="pity-bar"><div class="pity-progress" id="pity-progress"></div></div>
+                </div>
+                <div class="rarity-stats">
+                    <div class="stat-item">7星: <span id="count-7">0</span></div>
+                    <div class="stat-item">6星: <span id="count-6">0</span></div>
+                    <div class="stat-item">5星: <span id="count-5">0</span></div>
+                    <div class="stat-item">4星: <span id="count-4">0</span></div>
+                    <div class="stat-item">3星: <span id="count-3">0</span></div>
+                    <div class="stat-item">2星: <span id="count-2">0</span></div>
+                    <div class="stat-item">1星: <span id="count-1">0</span></div>
+                    <div class="stat-item">总计: <span id="wish-count">0</span></div>
+                </div>
+            </div>
+        
+            <div class="button-group">
+                <button class="wish-button" id="wish-button">
+                    抽取武器 (1次)
+                    <span class="price-tag">100 金币</span>
+                </button>
+                <button class="wish-button wish-button-10" id="wish-button-10">
+                    抽取武器 (10次)
+                    <span class="price-tag">550 金币</span>
+                </button>
+            </div>
+        
+            <div class="wish-results" id="wish-results"></div>
+        </div>
+    </div>
+    
+    <div class="wish-effect" id="wish-effect">
+        <picture>
+            <source srcset="img/effect.webp" type="image/webp">
+            <source srcset="img/effect.png" type="image/png"> 
+            <img class="effect-content" src="img/effect.png" alt="抽卡特效">
+        </picture>
+    </div>
+
+    <!-- 加载模块化JS文件 -->
+    <script src="js/utils.js?v=20250424003048956"></script>
+    <script src="js/rpgCore.js?v=20250424003048956"></script>
+    <script src="js/inventory.js?v=20250424003048956"></script>
+    <script src="js/equipment.js?v=20250424003048956"></script>
+    <script src="js/enhance.js?v=20250424003048956"></script>
+    <script src="js/gacha.js?v=20250424003048956"></script>
+    <script src="js/mapSystem.js?v=20250424003048956"></script>
+    <script src="https://cdn.jsdelivr.net/npm/lz-string@1.4.4/libs/lz-string.min.js"></script>
+    <script src="js/saveSystem.js?v=20250424003048956"></script>
+    <script src="js/main.js?v=20250424003048956"></script>
+</body>
+</html>
