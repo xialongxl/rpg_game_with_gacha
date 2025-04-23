@@ -23,12 +23,15 @@ jobs:
           git config --global user.name "xialongxl"
           git config --global user.email "xialong2001@gmail.com"
 
-      - name: Generate timestamp version
+      - name: Generate Beijing timestamp version
         run: |
-          # 生成毫秒级时间戳 (格式: 20240315123045999)
+          # 设置北京时间 (UTC+8)
+          export TZ='Asia/Shanghai'
+          # 生成毫秒级时间戳 (北京时间格式: 20250423153334350)
           VERSION=$(date +%Y%m%d%H%M%S%3N)
-          echo "新版本号: $VERSION"
+          echo "北京时间版本号: $VERSION"
           echo "VERSION=$VERSION" >> $GITHUB_ENV
+          echo "当前系统时间: $(date)"
 
       - name: Update files
         run: |
@@ -51,12 +54,12 @@ jobs:
       - name: Commit changes
         run: |
           git add index.html js/rpgCore.js js/saveSystem.js
-          git diff --staged --quiet || git commit -m "Auto update version to $(date +%Y%m%d%H%M%S%3N)"
+          git diff --staged --quiet || git commit -m "Auto update version to $(TZ='Asia/Shanghai' date +%Y%m%d%H%M%S%3N)"
           git push origin main
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}  # 🚨 必须保留（自动注入的token）
-          publish_dir: ./           # ⚠️ 确认是包含index.html的目录
-          force_orphan: true        # 🚨 建议true（清理旧文件）
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./
+          force_orphan: true
