@@ -12,7 +12,7 @@ function updateEquipmentUI() {
                 <img src="${weaponImages[weapon.type]}" class="equipment-slot-icon" data-type="${weapon.type}">
                 ${weapon.name} (${weapon.rarity}★)<br>
                 类型: ${weapon.type}<br>
-                LAI: ${weapon.lai}<br>
+                直线攻击距离: ${weapon.lai}<br>
                 攻击力: ${weapon.attack}<br>
                 ${weapon.enhanceLevel ? `强化等级: +${weapon.enhanceLevel}<br>` : ''}
                 <button class="action-button unequip-button" data-slot="mainHand">卸下</button>

@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>幻想RPG与抽卡联动游戏</title>
+    <title>冒险者：无名英雄传</title>
     <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
     <div class="particle-bg" id="particle-bg"></div>
     <div class="toast" id="toast"></div>
     <div class="container">
-        <h1>幻想RPG与抽卡联动游戏</h1>
+        <h1>冒险者：无名英雄传</h1>
         
         <!-- 导航栏 -->
         <div class="nav-bar">
@@ -24,10 +24,9 @@
             <div class="game-panel">
                 <!-- 游戏状态显示部分保持不变 -->
                 <!-- 游戏状态显示部分 -->
-                <!-- 游戏状态显示部分 -->
                 <div class="status">
                     <div>玩家等级: <span id="player-level">1</span></div>
-                    <div>攻击距离: <span id="player-lai">1</span></div>
+                    <div>直线攻击距离: <span id="player-lai">1</span></div>
                     <div>攻击力: <span id="player-attack">10</span></div>
                     <div>防御力: <span id="player-defense">0</span></div>
                     <div>金币: <span id="player-gold">0</span></div>
@@ -36,16 +35,17 @@
                         <div class="exp-bar" style="width: 0%"></div>
                         <div class="exp-text" id="exp-text">经验值：<span id="player-exp">0</span>/<span id="exp-to-level">50</span></div>
                     </div>
-                    <!-- 玩家血条 -->
-                    <div class="health-bar-container">
-                        <div class="health-bar" style="width: 100%"></div>
-                        <div class="health-text" id="health-text">生命值：<span id="player-hp">100</span>/<span id="player-max-hp">100</span></div>
-                    </div>
                     <!-- 敌人血条 -->
                     <div class="enemy-health-bar-container" id="enemy-health-container" style="display: none;">
                         <div class="enemy-health-bar" style="width: 100%"></div>
                         <div class="enemy-health-text">怪物生命值：<span id="monster-hp">0</span>/<span id="monster-max-hp">0</span></div>
                     </div>
+                    <!-- 玩家血条 -->
+                    <div class="health-bar-container">
+                        <div class="health-bar" style="width: 100%"></div>
+                        <div class="health-text" id="health-text">生命值：<span id="player-hp">100</span>/<span id="player-max-hp">100</span></div>
+                    </div>
+
                 </div>
                 
                 <div class="status">
@@ -56,7 +56,12 @@
 
                 <div id="charge-display" class="charge-ui">[X键蓄力] ◇◇◇</div>
                 <div id="charge-hint" class="charge-hint">装备双手剑时长按X键蓄力</div>
-
+                <!-- 放在game-container内的顶部 -->
+                <div id="player-name-container">
+                    冒险者姓名：<span id="display-name">无名</span>
+                    <input type="text" id="name-input" style="display:none;" maxlength="10">
+                    <button id="edit-name-btn">改名</button>
+                </div>
                 
                 <!-- 地图信息 -->
                 <div id="map-info" class="map-info-text">当前地图：森林之地 (1-10级)</div>
@@ -137,7 +142,7 @@
             <div class="equipment-panel">
                 <div class="equipment-header">装备栏</div>
                 <div class="equipment-slot" id="main-hand-slot">
-                    <div class="equipment-slot-info">主手: 无装备 (LAI=1)</div>
+                    <div class="equipment-slot-info">主手: 无装备 (直线攻击距离=1)</div>
                 </div>
                 <div class="equipment-slot" id="off-hand-slot">
                     <div class="equipment-slot-info">副手: 无装备</div>

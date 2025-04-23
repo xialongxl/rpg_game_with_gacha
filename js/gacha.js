@@ -123,7 +123,7 @@ function displayWeapon(weapon) {
         <div class="item-name">${weapon.name}</div>
         <div class="rarity-stars">${starsHTML}</div>
         <div>${weapon.type}</div>
-        <div>LAI: ${weapon.lai}</div>
+        <div>直线攻击距离: ${weapon.lai}</div>
         ${weapon.type === '盾牌' ? 
             `<div>防御力: ${weapon.defense}</div>` : 
             `<div>攻击力: ${weapon.attack}</div>`}

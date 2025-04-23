@@ -19,7 +19,7 @@ function addToInventory(weapon) {
         log(`丢弃了 "${discardedWeapon.name}"，存入 "${weapon.name}"`);
     }
     player.inventory.push(weapon);
-    log(`获得武器 "${weapon.name}" (${weapon.rarity}★, LAI=${weapon.lai}, ${weapon.type === '盾牌' ? '防御力' : '攻击力'}=${weapon.type === '盾牌' ? weapon.defense : weapon.attack})，已存入背包`);
+    log(`获得武器 "${weapon.name}" (${weapon.rarity}★, 直线攻击距离=${weapon.lai}, ${weapon.type === '盾牌' ? '防御力' : '攻击力'}=${weapon.type === '盾牌' ? weapon.defense : weapon.attack})，已存入背包`);
     updateInventoryUI();
     updateGameUI();
 }
@@ -52,7 +52,7 @@ function updateInventoryUI() {
                 <div class="inventory-item-type">类型: ${weapon.type}</div>
                 <div class="inventory-item-stats">
                     ${statDisplay}
-                    LAI: ${weapon.lai}<br>
+                    直线攻击距离: ${weapon.lai}<br>
                     稀有度: ${'★'.repeat(weapon.rarity)}
                 </div>
                 <div class="inventory-item-actions">

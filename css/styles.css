@@ -910,7 +910,7 @@ h1 {
     left: 0;
     top: 0;
     height: 100%;
-    background: linear-gradient(270deg, #ff6a00, #ff0000);
+    background: linear-gradient(270deg, #ff6a00, #00c4ff);
     /* 宽度将通过JavaScript动态设置 */
   }
   
@@ -958,7 +958,7 @@ h1 {
     left: 0;
     top: 0;
     height: 100%;
-    background: linear-gradient(270deg, #6a00ff, #0000ff);
+    background: linear-gradient(270deg, #6a00ff, #e94560);
   }
   
   /* 敌人血条螺旋纹效果 */
@@ -1100,3 +1100,38 @@ h1 {
     color: #ff9900;
     font-size: 14px;
 }
+
+#player-name-container {
+    margin: 10px;
+    text-align: center;
+}
+
+#display-name {
+    font-size: 1.2em;
+    font-weight: bold;
+    color: #f8d030;
+    text-shadow: 1px 1px 2px #000;
+}
+
+#name-input {
+    padding: 5px;
+    font-size: 1em;
+    width: 150px;
+    text-align: center;
+    border: 2px solid #f8d030;
+    border-radius: 5px;
+}
+
+#edit-name-btn {
+    margin-left: 10px;
+    padding: 3px 8px;
+    background: #4a4a4a;
+    color: white;
+    border: 1px solid #f8d030;
+    border-radius: 3px;
+    cursor: pointer;
+}
+
+.ultimate-text { font-weight: bold; }
+.red-text { color: #ff0000; text-shadow: 0 0 5px red; }
+.effect-text { animation: shake 0.5s; }

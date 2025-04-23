@@ -1,5 +1,10 @@
+//辅助函数
+function random(min, max) {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
 let player = {
-    name: "无名",
+    name: localStorage.getItem('playerName') || "无名",
     level: 1,
     exp: 0,
     expToLevel: 50,
@@ -14,6 +19,49 @@ let player = {
     currentSlot: 'slot0',
     version:2.1
 };
+
+// 在player对象下方添加名称管理函数
+function initNameSystem() {
+    const nameDisplay = document.getElementById('display-name');
+    const nameInput = document.getElementById('name-input');
+    const editBtn = document.getElementById('edit-name-btn');
+    
+    // 初始化显示
+    nameDisplay.textContent = player.name;
+    
+    // 改名按钮点击事件
+    editBtn.addEventListener('click', () => {
+        nameInput.value = player.name;
+        nameDisplay.style.display = 'none';
+        nameInput.style.display = 'inline-block';
+        nameInput.focus();
+        editBtn.textContent = '保存';
+    });
+    
+    // 输入框事件处理
+    nameInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            saveName();
+        }
+    });
+    
+    nameInput.addEventListener('blur', saveName);
+    
+    function saveName() {
+        const newName = nameInput.value.trim() || '无名';
+        player.name = newName;
+        nameDisplay.textContent = newName;
+        nameInput.style.display = 'none';
+        nameDisplay.style.display = 'inline';
+        editBtn.textContent = '改名';
+        
+        // 更新日志中的名称引用
+        log(`玩家名称已变更为: ${newName}`);
+        updateGameUI();
+        saveGame(AUTO_SAVE_SLOT, true);
+    }
+}
 
 let monster = { name: "无名", maxHp:0, hp: 0, attack: 0, lai: 0 };
 
@@ -158,24 +206,72 @@ function checkLevelUp() {
 // 生成新怪物
 function generateMonster() {
     battleCount++;
-    //monster.maxHp = 20 + battleCount * 5;
-    //monster.hp = monster.maxHp;
-    monster.attack = 5 + battleCount * 2;
-    monster.lai = Math.min(1 + Math.floor(battleCount / 5), 3);
+    
+    // 获取当前地图的敌人模板
+    const templates = getCurrentEnemyTemplates();
+    const playerLevel = player.level;
+    
+    // 筛选适合当前玩家等级的敌人
+    const suitableEnemies = templates.filter(
+        enemy => playerLevel >= enemy.minLevel && playerLevel <= enemy.maxLevel
+    );
+    
+    // 随机选择一个敌人模板
+    const template = suitableEnemies[Math.floor(Math.random() * suitableEnemies.length)] || templates[0];
+    
+    // 计算敌人等级（玩家等级±3范围内）
+    const enemyLevel = Math.max(
+        playerLevel - 3 + Math.floor(Math.random() * 7), 
+        1
+    );
+    
+    // 计算敌人属性（使用新的成长公式）
+    const maxHp = random(
+        Math.floor(50 + 5 * enemyLevel * Math.pow(1.09015, enemyLevel)),
+        Math.floor(150 + 10 * enemyLevel * Math.pow(1.09015, enemyLevel))
+    );
+    
+    const attack = random(
+        Math.floor(5 + 2 * enemyLevel * Math.pow(1.052, enemyLevel)),
+        Math.floor(20 + 5 * enemyLevel * Math.pow(1.052, enemyLevel))
+    );
+    
+    const gold = random(
+        Math.floor(10 + 2 * enemyLevel * Math.pow(1.1181, enemyLevel)),
+        Math.floor(50 + 5 * enemyLevel * Math.pow(1.1181, enemyLevel))
+    );
+    
+    // 创建敌人对象
+    Object.assign(monster, {
+        name: template.name,
+        level: enemyLevel,
+        hp: maxHp,
+        maxHp: maxHp,
+        attack: attack,
+        lai: template.lai,
+        gold: gold,
+        exp: random(template.minExp, template.maxExp)
+    });
+    
+    // 应用地图难度加成
     adjustMonsterStats(monster);
+    
+    // 重置战斗位置
     playerPosition = 5;
     monsterPosition = 0;
     distance = Math.abs(playerPosition - monsterPosition) - 1;
-
+    
+    // 更新UI
     const enemyContainer = document.getElementById('enemy-health-container');
-    if (enemyContainer) {
-        enemyContainer.style.display = 'block';
-        updateEnemyHealth();
-    }
+    if (enemyContainer) enemyContainer.style.display = 'block';
+    
     const expContainer = document.getElementById('exp-container');
     if (expContainer) expContainer.style.display = 'none';
+
+    updateEnemyHealth();
     updateGameUI();
-    log(`第 ${battleCount} 次战斗开始！遇到${currentMap.name}的怪物${monster.name}（生命值: ${monster.hp}, 攻击力: ${monster.attack}, 攻击距离: ${monster.lai}）`);
+    
+    log(`第 ${battleCount} 次战斗开始！遇到${currentMap.name}的${monster.name}（Lv.${monster.level} 生命值：${monster.hp} 攻击力：${monster.attack} 攻击距离：${monster.lai}）`);
 }
 
 
@@ -188,6 +284,7 @@ function updateEnemyHealth() {
         enemyText.textContent = `${monster.name}生命值：${monster.hp}/${monster.maxHp}`;
     }
 }
+
 
 // 玩家原地不动或攻击
 function playerStayOrAttack() {
@@ -204,7 +301,7 @@ function playerStayOrAttack() {
         const damage = Math.floor(player.attack * chargeSystem.multipliers[chargeSystem.level]);
         monster.hp -= damage;
         updateEnemyHealth();
-        log(`${player.name}释放${chargeSystem.skillNames[chargeSystem.level]}蓄力斩${chargeSystem.skillLv[chargeSystem.level]}${chargeSystem.skillTags[chargeSystem.level]}造成 ${damage} 点伤害${chargeSystem.skillLv[chargeSystem.level]}`);
+        log(`<span class="ultimate-text">${player.name}释放<span class="red-text">${chargeSystem.skillNames[chargeSystem.level]}蓄力斩${chargeSystem.skillLv[chargeSystem.level]}</span><span class="effect-text">${chargeSystem.skillTags[chargeSystem.level]}</span>造成<span class="damage-text"> ${damage}</span> 点伤害${chargeSystem.skillLv[chargeSystem.level]}${monster.name}剩余生命值: ${monster.hp}</span>`);
         chargeSystem.level = 0; // 重置蓄力
         gameElements.monsterHp.classList.add('blink');
         checkBattleEnd();
@@ -329,11 +426,11 @@ function endBattle(playerWon) {
     
     // 2. 处理战斗结果
     if (playerWon && !isBossFight) {
-        const goldReward = Math.floor(Math.random() * 31) + 20;
-        const expReward = Math.floor(Math.random() * 11) + 10;
-        player.gold += goldReward;
-        player.exp += expReward;
-        log(`${monster.name || '怪物'}被击败！获得 ${goldReward} 金币和 ${expReward} 经验值`);
+        //const goldReward = Math.floor(Math.random() * 31) + 20;
+        //const expReward = Math.floor(Math.random() * 11) + 10;
+        player.gold += monster.gold;
+        player.exp += monster.exp;
+        log(`${monster.name}被击败！获得 ${monster.gold} 金币和 ${monster.exp} 经验值`);
         chargeSystem.hasChargedThisTurn = false; // 重置蓄力标记
         checkLevelUp();
         saveGame(AUTO_SAVE_SLOT, true);
@@ -388,7 +485,7 @@ function startCharge() {
             updateChargeUI();
         }
         chargeSystem.isCharging = false;
-    }, 100); //蓄力时间（毫秒）
+    }, 500); //蓄力时间（毫秒）
 }
 function cancelCharge() {
     if (chargeSystem.chargeTimer) {
@@ -410,6 +507,76 @@ function handleXKeyUp(e) {
     }
 }
 
+// 在 initRPG() 函数之前添加以下代码
+
+// 键盘控制函数
+// 更新后的键盘控制函数
+function handleKeyControls(e) {
+    const key = e.key.toLowerCase();
+    
+    // 防止在输入框中触发
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+        return;
+    }
+
+    switch(key) {
+        case 'arrowleft':
+            if (isFighting) {
+                moveForward();
+            }
+            break;
+            
+        case 'arrowright':
+            if (isFighting) {
+                moveBackward();
+            }
+            break;
+            
+        case 'z':
+            if (isFighting) {
+                playerStayOrAttack(); // 战斗中：攻击
+            } else {
+                startBattle(); // 战斗外：开始战斗
+            }
+            break;
+    }
+}
+
+// 提取移动操作为独立函数
+function moveForward() {
+    if (playerPosition <= monsterPosition + 1) {
+        showToast('已贴近怪物，无法更近！');
+        return;
+    }
+    playerPosition--;
+    distance = Math.abs(playerPosition - monsterPosition) - 1;
+    log(`${player.name}前进，距离减少到 ${distance} 格`);
+    updateGameUI();
+    monsterTurn();
+}
+
+function moveBackward() {
+    if (playerPosition >= 10) {
+        showToast(`已达最大距离！${player.name}无路可退！`);
+        return;
+    }
+    playerPosition++;
+    distance = Math.abs(playerPosition - monsterPosition) - 1;
+    log(`${player.name}后退，距离增加到 ${distance} 格`);
+    updateGameUI();
+    monsterTurn();
+}
+
+// 开始战斗函数
+function startBattle() {
+    if (isFighting) return;
+    isFighting = true;
+    generateMonster();
+    updateGameUI();
+}
+
+
+
 function updateChargeUI() {
     const chargeDisplay = document.getElementById('charge-display');
     if (chargeDisplay) {
@@ -420,6 +587,7 @@ function updateChargeUI() {
 
 // 初始化RPG核心事件
 function initRPG() {
+    initNameSystem();
     gameElements.fightButton.addEventListener('click', () => {
         if (isFighting) return;
         isFighting = true;
@@ -443,7 +611,7 @@ function initRPG() {
     gameElements.moveBackwardButton.addEventListener('click', () => {
         if (!isFighting) return;
         if (playerPosition >= 10) {
-            showToast('已达最大距离！无路可退！');
+            showToast(`已达最大距离！${player.name}无路可退！`);
             return;
         }
         playerPosition++;
@@ -478,6 +646,9 @@ function initRPG() {
     // 添加键盘监听
     document.addEventListener('keydown', handleXKeyDown);
     document.addEventListener('keyup', handleXKeyUp);
+
+    document.addEventListener('keydown', handleKeyControls);
+    //document.addEventListener('keyup', handleKeyUp);
 
     updateGameUI();
 }
