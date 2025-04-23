@@ -20,6 +20,17 @@ let player = {
     version:2.1
 };
 
+// 配置表：星级对应的减伤基数（可自由调整）
+const STAR_REDUCTION_RATE = {
+    1: 0.30,  // 1星减伤30%
+    2: 0.25,
+    3: 0.20,
+    4: 0.15,
+    5: 0.10,
+    6: 0.05,
+    7: 0.01   // 7星减伤1%
+};
+
 // 在player对象下方添加名称管理函数
 function initNameSystem() {
     const nameDisplay = document.getElementById('display-name');
@@ -100,6 +111,8 @@ function createMonsterCell() {
 
 // 更新游戏主UI
 function updateGameUI() {
+    mainHand = player.equipment.mainHand;
+    offHand = player.equipment.offHand;
     gameElements.playerLevel.textContent = player.level;
     gameElements.playerExp.textContent = player.exp;
     gameElements.expToLevel.textContent = player.expToLevel;
@@ -169,10 +182,10 @@ function updateGameUI() {
     updateChargeUI();
     
     // 双手剑类武器提示
-    const weapon = player.equipment.mainHand;
+    //const weapon = player.equipment.mainHand;
     const chargeHint = document.getElementById('charge-hint');
     if (chargeHint) {
-        chargeHint.style.display = (weapon && weapon.type === '双手剑') ? 'block' : 'none';
+        chargeHint.style.display = (mainHand && mainHand.type === '双手剑') ? 'block' : 'none';
     }
 
 }
@@ -271,7 +284,7 @@ function generateMonster() {
     updateEnemyHealth();
     updateGameUI();
     
-    log(`第 ${battleCount} 次战斗开始！遇到${currentMap.name}的${monster.name}（Lv.${monster.level} 生命值：${monster.hp} 攻击力：${monster.attack} 攻击距离：${monster.lai}）`);
+    log(`第 ${battleCount} 次战斗开始！遇到${currentMap.name}的${monster.name}（Lv.${monster.level} 生命值：${monster.hp} 攻击力：${monster.attack} 直线攻击距离：${monster.lai}）`);
 }
 
 
@@ -288,21 +301,22 @@ function updateEnemyHealth() {
 
 // 玩家原地不动或攻击
 function playerStayOrAttack() {
-    const weapon = player.equipment.mainHand;
+    //const weapon = player.equipment.mainHand;
     const playerLai = player.equipment.mainHand ? player.equipment.mainHand.lai : 1;
 
     // 火球术条件检测
-    if (weapon && weapon.type === '法杖' && playerPosition === 10) { // 注意：格子索引是0-10，所以第11格是索引10
+    if (mainHand && mainHand.type === '法杖' && playerPosition === 10) { // 注意：格子索引是0-10，所以第11格是索引10
         castFireball();
         return;
     }
 
-    if (weapon && weapon.type === '双手剑' && chargeSystem.level > 0 && distance <= playerLai) {
+    if (mainHand && mainHand.type === '双手剑' && chargeSystem.level > 0 && distance <= playerLai) {
         const damage = Math.floor(player.attack * chargeSystem.multipliers[chargeSystem.level]);
         monster.hp -= damage;
         updateEnemyHealth();
-        log(`<span class="ultimate-text">${player.name}释放<span class="red-text">${chargeSystem.skillNames[chargeSystem.level]}蓄力斩${chargeSystem.skillLv[chargeSystem.level]}</span><span class="effect-text">${chargeSystem.skillTags[chargeSystem.level]}</span>造成<span class="damage-text"> ${damage}</span> 点伤害${chargeSystem.skillLv[chargeSystem.level]}${monster.name}剩余生命值: ${monster.hp}</span>`);
+        log(`<span class="ultimate-text">${player.name}使用<span class="rarity-${mainHand.rarity}">${mainHand.name}</span>释放<span class="red-text">${chargeSystem.skillNames[chargeSystem.level]}蓄力斩${chargeSystem.skillLv[chargeSystem.level]}</span><span class="effect-text">${chargeSystem.skillTags[chargeSystem.level]}</span>造成<span class="damage-text"> ${damage}</span> 点伤害${chargeSystem.skillLv[chargeSystem.level]}${monster.name}剩余生命值: ${monster.hp}</span>`);
         chargeSystem.level = 0; // 重置蓄力
+        chargeSystem.hasChargedThisTurn = false;
         gameElements.monsterHp.classList.add('blink');
         checkBattleEnd();
         return;
@@ -336,14 +350,16 @@ function playerStayOrAttack() {
 
 function castFireball() {
     // 1. 获取装备
-    const mainHand = player.equipment.mainHand;
-    const offHand = player.equipment.offHand;
+    //const mainHand = player.equipment.mainHand;
+    //const offHand = player.equipment.offHand;
     
     // 2. 强制主手必须装备法杖（否则直接返回）
-    if (!mainHand || mainHand.type !== '法杖') {
-        log(`${player.name}需要装备法杖才能施放火球术！`);
-        return;
-    }
+    if (!mainHand || mainHand.type !== '法杖') return;
+
+
+    const starLevel = Math.min(7, Math.max(1, mainHand.rarity || 1));
+    const reductionRate = STAR_REDUCTION_RATE[starLevel];
+
 
     // 3. 精确检测组合状态（主手法杖 + 副手魔法书）
     const isCombo = offHand && offHand.type === '魔法书';  // true/false
@@ -354,11 +370,12 @@ function castFireball() {
     
     // 5. 最终伤害计算（包含减伤逻辑）
     const baseDamage = Math.floor(player.attack * damageMultiplier);
-    const mitigatedDamage = Math.min(Math.floor(monster.attack / 3), baseDamage); // 减伤较少
-    const finalDamage = Math.max(1, baseDamage - mitigatedDamage);
+    //const mitigatedDamage = Math.floor(baseDamage * 0.20); // 减伤20%
+    const finalDamage = Math.max(1, Math.floor(baseDamage * (1 - reductionRate)));
+    const mitigatedDamage = Math.floor(baseDamage - finalDamage);
 
     // 6. 战斗日志输出
-    log(`<span class="fireball-text">${player.name}挥舞${mainHand.name}，释放火球术🔥！炽热的火球🔥飞向${monster.name}！</span>`);
+    log(`<span class="fireball-text">${player.name}挥舞<span class="rarity-${mainHand.rarity}"></span>${mainHand.name}，释放火球术🔥！炽热的火球🔥飞向${monster.name}！</span>`);
     
     setTimeout(() => {
         monster.hp -= finalDamage;
@@ -392,7 +409,7 @@ function checkBattleEnd() {
 function monsterTurn() {
     if (distance <= monster.lai) {
         const rawDamage = monster.attack;
-        const mitigatedDamage = Math.min(player.defense, rawDamage);
+        const mitigatedDamage = Math.floor(rawDamage * (player.defense / (player.defense + 100)));
         const actualDamage = Math.max(1, rawDamage - mitigatedDamage);
         
         player.hp -= actualDamage;
@@ -411,7 +428,7 @@ function monsterTurn() {
     if (player.hp <= 0) {
         endBattle(false);
     } else {
-        chargeSystem.hasChargedThisTurn = false; // 标记已蓄力
+        //chargeSystem.hasChargedThisTurn = false; // 标记已蓄力
         updateGameUI();
     }
 }
@@ -473,8 +490,8 @@ function endBattle(playerWon) {
 function startCharge() {
     if (!isFighting || chargeSystem.isCharging || chargeSystem.hasChargedThisTurn) return;
     
-    const weapon = player.equipment.mainHand;
-    if (!weapon || weapon.type !== '双手剑') return;
+    //const weapon = player.equipment.mainHand;
+    if (!mainHand || mainHand.type !== '双手剑') return;
     
     chargeSystem.isCharging = true;
     chargeSystem.chargeTimer = setTimeout(() => {

@@ -42,7 +42,7 @@ function updateInventoryUI() {
             `防御力: ${weapon.defense}<br>` : 
             `攻击力: ${weapon.attack}<br>`;
         
-        // 添加武器图片
+        // 添加武器图片//稀有度：${'★'.repeat(weapon.rarity)}
         const weaponImg = weaponImages[weapon.type] || '';
         
         itemDiv.innerHTML = `
@@ -53,7 +53,7 @@ function updateInventoryUI() {
                 <div class="inventory-item-stats">
                     ${statDisplay}
                     直线攻击距离: ${weapon.lai}<br>
-                    稀有度: ${'★'.repeat(weapon.rarity)}
+                    品质: ${weapon.rarityName}                    
                 </div>
                 <div class="inventory-item-actions">
                     ${canEquipMainHand ? `<button class="action-button equip-button" data-index="${index}" data-slot="mainHand">装备主手</button>` : ''}

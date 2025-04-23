@@ -303,13 +303,22 @@ h1 {
 }
 
 /* 稀有度颜色 */
-.rarity-1 { color: #f5f5f5; border-color: #f5f5f5; }
-.rarity-2 { color: #4caf50; border-color: #4caf50; }
-.rarity-3 { color: #2196f3; border-color: #2196f3; }
-.rarity-4 { color: #9c27b0; border-color: #9c27b0; }
-.rarity-5 { color: #ffd700; border-color: #ffd700; }
-.rarity-6 { color: #ff9800; border-color: #ff9800; }
-.rarity-7 { color: #ff0000; border-color: #ff0000; }
+.rarity-1 { color: #b0b0b0; border-color: #b0b0b0; }  /* 灰色（Common） */
+.rarity-2 { color: #4caf50; border-color: #4caf50; }  /* 绿色（Uncommon） */
+.rarity-3 { color: #2196f3; border-color: #2196f3; }  /* 蓝色（Rare） */
+.rarity-4 { color: #800080; border-color: #800080; }  /* 紫色（Epic，原indigo改用标准紫） */
+.rarity-5 { color: #9c27b0; border-color: #9c27b0; }  /* 深紫（Legendary，原purple改用Material Design紫） */
+.rarity-6 { color: #ff9800; border-color: #ff9800; }  /* 橙色（Mythic） */
+.rarity-7 { color: #f44336; border-color: #f44336; }
+
+/*.rarity-7 { 
+    text-shadow: 0 0 5px rgba(244, 67, 54, 0.7);
+    animation: glow 1.5s ease-in-out infinite alternate;
+  }
+  @keyframes glow {
+    from { text-shadow: 0 0 5px rgba(244, 67, 54, 0.7); }
+    to { text-shadow: 0 0 10px rgba(244, 67, 54, 1); }
+  }*/
 
 /* 武器图片 */
 .item-image {
@@ -396,13 +405,13 @@ h1 {
 }
 
 /* 稀有度边框颜色 */
-.inventory-item.rarity-1 { border-color: #a8a8b8; }
-.inventory-item.rarity-2 { border-color: #4aa54a; }
-.inventory-item.rarity-3 { border-color: #4a7aed; }
-.inventory-item.rarity-4 { border-color: #b84aed; }
-.inventory-item.rarity-5 { border-color: #edb84a; }
-.inventory-item.rarity-6 { border-color: #ed7a4a; }
-.inventory-item.rarity-7 { border-color: #ff4a4a; }
+.inventory-item.rarity-1 { border-color: #b0b0b0; }
+.inventory-item.rarity-2 { border-color: #4caf50; }
+.inventory-item.rarity-3 { border-color: #2196f3; }
+.inventory-item.rarity-4 { border-color: #800080; }
+.inventory-item.rarity-5 { border-color: #9c27b0; }
+.inventory-item.rarity-6 { border-color: #ff9800; }
+.inventory-item.rarity-7 { border-color: #f44336; }
 
 .inventory-item:hover {
     transform: translateY(-3px);

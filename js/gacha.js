@@ -37,6 +37,17 @@ const disassembleValues = {
     1: 5, 2: 15, 3: 30, 4: 60, 5: 120, 6: 240, 7: 0
 };
 
+const RARITY_NAMES ={
+    1: "普通",
+    2: "精良",
+    3: "稀有",
+    4: "卓越",
+    5: "史诗",
+    6: "传说",
+    7: "神话"
+}
+
+
 let pityCounter = 0;
 let stats = { 7: 0, 6: 0, 5: 0, 4: 0, 3: 0, 2: 0, 1: 0, total: 0 };
 const wishEffect = document.getElementById('wish-effect');
@@ -82,6 +93,7 @@ function createWeapon(rarity) {
         name: name,
         type: type,
         rarity: rarity,
+        rarityName: RARITY_NAMES[rarity],
         lai: weaponLai[type] || 0,
         image: weaponImages[type],
         attack: attack,
@@ -99,8 +111,8 @@ function displayWeapon(weapon) {
     card.className = 'wish-card';
     
     const starColors = {
-        1: '#f5f5f5', 2: '#4caf50', 3: '#2196f3', 4: '#9c27b0',
-        5: '#ffd700', 6: '#ff9800', 7: '#ff0000'
+        1: '#b0b0b0', 2: '#4caf50', 3: '#2196f3', 4: '#800080',
+        5: '#9c27b0', 6: '#ff9800', 7: '#f44336'
     };
     
     let starsHTML = '';

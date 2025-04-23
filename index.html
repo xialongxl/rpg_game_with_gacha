@@ -3,8 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-Content-Type-Options" content="nosniff">
+    <meta http-equiv="Cache-Control" content="public, immutable, max-age=31536000">
     <title>冒险者：无名英雄传</title>
-    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/styles.css?v=1.0">
+    <link rel="icon" href="img/favicon.png" type="image/png">
 </head>
 <body>
     <div class="particle-bg" id="particle-bg"></div>
@@ -22,7 +25,6 @@
         <!-- 地图与战斗界面 -->
         <div class="section game-section active" id="game-section">
             <div class="game-panel">
-                <!-- 游戏状态显示部分保持不变 -->
                 <!-- 游戏状态显示部分 -->
                 <div class="status">
                     <div>玩家等级: <span id="player-level">1</span></div>
@@ -32,20 +34,19 @@
                     <div>金币: <span id="player-gold">0</span></div>
                     <!-- 经验条 -->
                     <div class="exp-bar-container" id="exp-container">
-                        <div class="exp-bar" style="width: 0%"></div>
+                        <div class="exp-bar"></div>
                         <div class="exp-text" id="exp-text">经验值：<span id="player-exp">0</span>/<span id="exp-to-level">50</span></div>
                     </div>
                     <!-- 敌人血条 -->
                     <div class="enemy-health-bar-container" id="enemy-health-container" style="display: none;">
-                        <div class="enemy-health-bar" style="width: 100%"></div>
+                        <div class="enemy-health-bar"></div>
                         <div class="enemy-health-text">怪物生命值：<span id="monster-hp">0</span>/<span id="monster-max-hp">0</span></div>
                     </div>
                     <!-- 玩家血条 -->
                     <div class="health-bar-container">
-                        <div class="health-bar" style="width: 100%"></div>
+                        <div class="health-bar"></div>
                         <div class="health-text" id="health-text">生命值：<span id="player-hp">100</span>/<span id="player-max-hp">100</span></div>
                     </div>
-
                 </div>
                 
                 <div class="status">
@@ -56,10 +57,10 @@
 
                 <div id="charge-display" class="charge-ui">[X键蓄力] ◇◇◇</div>
                 <div id="charge-hint" class="charge-hint">装备双手剑时长按X键蓄力</div>
-                <!-- 放在game-container内的顶部 -->
+                
                 <div id="player-name-container">
                     冒险者姓名：<span id="display-name">无名</span>
-                    <input type="text" id="name-input" style="display:none;" maxlength="10">
+                    <input type="text" id="name-input" style="display:none;" maxlength="10" aria-label="输入新名字">
                     <button id="edit-name-btn">改名</button>
                 </div>
                 
@@ -106,7 +107,6 @@
                     <button class="action-button" id="quick-save-btn">快速存档</button>
                     <button class="action-button" id="quick-load-btn">快速读档</button>
                     <button class="action-button" id="manage-saves-btn">管理存档</button>
-                    <!-- 移除原来的强化按钮 -->
                 </div>
                 
                 <!-- 战斗操作按钮 -->
@@ -123,9 +123,12 @@
             <!-- 强化面板 -->
             <div class="enhance-panel" id="enhance-panel">
                 <div class="enhance-header">武器强化</div>
-                <select class="enhance-select" id="enhance-weapon-select">
-                    <option value="-1">选择武器</option>
-                </select>
+                <div class="enhance-control">
+                    <label for="enhance-weapon-select" class="enhance-label">选择强化武器</label>
+                    <select class="enhance-select" id="enhance-weapon-select" aria-labelledby="enhance-label" title="选择要强化的武器">
+                        <option value="-1">-- 请选择武器 --</option>
+                    </select>
+                </div>
                 <div class="enhance-info" id="enhance-info">
                     <p>武器信息: 未选择</p>
                     <p>强化等级: -</p>
@@ -152,17 +155,17 @@
                 </div>
             </div>
 
-            <!-- 背包面板 - 添加强化按钮 -->
+            <!-- 背包面板 -->
             <div class="inventory-panel">
-                <div class="inventory-header">
-                    背包（<span id="inventory-count">0</span>/9999）
+                <div class="inventory-header-container">
+                    <div class="inventory-header">背包（<span id="inventory-count">0</span>/9999）</div>
                     <button class="enhance-button" id="open-enhance-button">强化武器</button>
                 </div>
                 <div class="inventory-list" id="inventory-list"></div>
             </div>
         </div>
 
-        <!-- 抽卡界面保持不变 -->
+        <!-- 抽卡界面 -->
         <div class="section gacha-section" id="gacha-section">
             <!-- 抽卡统计面板 -->
             <div class="stats-panel">
@@ -198,33 +201,23 @@
     </div>
     
     <div class="wish-effect" id="wish-effect">
-        <img class="effect-content" src="https://static.wikia.nocookie.net/to-aru-majutsu-no-index/images/1/12/Pentagram-GreatGold.png" alt="Wish Effect">
+        <picture>
+            <source srcset="img/effect.webp" type="image/webp">
+            <source srcset="img/effect.png" type="image/png"> 
+            <img class="effect-content" src="img/effect.png" alt="抽卡特效">
+        </picture>
     </div>
-            <!-- 存档管理模态框 -->
-        <div id="save-modal" class="modal">
-            <div class="modal-content">
-                <span class="close">&times;</span>
-                <h2>存档管理</h2>
-                <div class="save-slots" id="save-slots">
-                    <!-- 存档位将在这里动态生成 -->
-                </div>
-                <div class="import-export-actions">
-                    <button class="action-button" id="export-save-btn">导出当前存档</button>
-                    <button class="action-button" id="import-save-btn">导入存档</button>
-                </div>
-            </div>
-        </div>
 
     <!-- 加载模块化JS文件 -->
-    <script src="js/utils.js"></script>
-    <script src="js/rpgCore.js"></script>
-    <script src="js/inventory.js"></script>
-    <script src="js/equipment.js"></script>
-    <script src="js/enhance.js"></script>
-    <script src="js/gacha.js"></script>
-    <script src="js/mapSystem.js"></script>
+    <script src="js/utils.js?v=1.0"></script>
+    <script src="js/rpgCore.js?v=1.0"></script>
+    <script src="js/inventory.js?v=1.0"></script>
+    <script src="js/equipment.js?v=1.0"></script>
+    <script src="js/enhance.js?v=1.0"></script>
+    <script src="js/gacha.js?v=1.0"></script>
+    <script src="js/mapSystem.js?v=1.0"></script>
     <script src="https://cdn.jsdelivr.net/npm/lz-string@1.4.4/libs/lz-string.min.js"></script>
-    <script src="js/saveSystem.js"></script>
-    <script src="js/main.js"></script>
+    <script src="js/saveSystem.js?v=1.0"></script>
+    <script src="js/main.js?v=1.0"></script>
 </body>
 </html>

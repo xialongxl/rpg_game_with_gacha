@@ -10,6 +10,12 @@ const AUTO_SAVE_SLOT = 'slot0';
 const MANUAL_SLOTS = ['slot1', 'slot2', 'slot3'];
 const VERSION = '2.1';
 
+// ==================== 全局变量 ====================
+let isSaveManagerInitialized = false;
+let saveModal = null;
+let isProcessing = false;
+let areSaveButtonsBound = false;
+
 // ==================== 核心功能 ====================
 
 /**
@@ -263,37 +269,61 @@ function importSave(encodedString, overwrite = false) {
  * 初始化存档UI界面 (完整保留原始实现)
  */
 function initSaveUI() {
-    // 主界面按钮
-
-
-    // 存档管理器模态框
-    const modalHTML = `
-        <div id="save-modal" class="modal">
-            <div class="modal-content">
-                <span class="close">&times;</span>
-                <h2>存档管理</h2>
-                <div class="save-slots" id="save-slots"></div>
-                <div class="import-export-actions">
-                    <button id="export-save-btn" class="action-button">导出当前存档</button>
-                    <button id="import-save-btn" class="action-button">导入存档</button>
+    // 如果已存在则更新引用
+    const existingModal = document.getElementById('save-modal');
+    if (existingModal) {
+        saveModal = existingModal;
+    } else {
+        // 创建模态框HTML
+        const modalHTML = `
+            <div id="save-modal" class="modal" style="display:none">
+                <div class="modal-content">
+                    <span class="close">&times;</span>
+                    <h2>存档管理</h2>
+                    <div class="save-slots" id="save-slots"></div>
+                    <div class="import-export-actions">
+                        <button id="export-save-btn" class="action-button">导出当前存档</button>
+                        <button id="import-save-btn" class="action-button">导入存档</button>
+                    </div>
                 </div>
             </div>
-        </div>
-    `;
-    document.body.insertAdjacentHTML('beforeend', modalHTML);
-
-    // 绑定按钮事件
-    bindSaveButtons();
+        `;
+        document.body.insertAdjacentHTML('beforeend', modalHTML);
+        saveModal = document.getElementById('save-modal');
+    }
+    // 一次性绑定所有事件
+    if (!isSaveManagerInitialized) {
+        bindGlobalSaveEvents();
+        isSaveManagerInitialized = true;
+    }
 }
 
 /**
  * 显示存档管理器 (完整实现)
  */
 function showSaveManager() {
-    const modal = document.getElementById('save-modal');
+    // 确保模态框存在
+    if (!saveModal) {
+        console.error('存档模态框未初始化，正在尝试初始化...');
+        initSaveUI();
+        if (!saveModal) {
+            console.error('初始化存档模态框失败');
+            return;
+        }
+    }
+    // 更新UI内容
+    updateSaveSlotsUI();
+    
+    // 显示模态框
+    saveModal.style.display = 'block';
+}
+
+/**
+ * 更新存档槽位UI
+ */
+function updateSaveSlotsUI() {
     const slotsDiv = document.getElementById('save-slots');
     slotsDiv.innerHTML = '';
-
     // 生成自动存档UI
     const autoSaveData = localStorage.getItem(SAVE_PREFIX + AUTO_SAVE_SLOT);
     let autoSaveHTML = '';
@@ -335,18 +365,15 @@ function showSaveManager() {
         `;
     }
     slotsDiv.insertAdjacentHTML('beforeend', autoSaveHTML);
-
     // 生成手动存档位UI
     MANUAL_SLOTS.forEach((slot, index) => {
         const saveData = localStorage.getItem(SAVE_PREFIX + slot);
         let slotHTML = '';
-
         if (saveData) {
             try {
                 const data = JSON.parse(LZString.decompressFromUTF16(saveData));
                 const saveDate = new Date(data.timestamp);
                 const formattedDate = saveDate.toLocaleDateString() + ' ' + saveDate.toLocaleTimeString();
-
                 slotHTML = `
                     <div class="save-slot">
                         <h3>存档位 ${index + 1}</h3>
@@ -382,13 +409,8 @@ function showSaveManager() {
                 </div>
             `;
         }
-
         slotsDiv.insertAdjacentHTML('beforeend', slotHTML);
     });
-
-    // 绑定槽位事件
-    bindSlotEvents();
-    modal.style.display = 'block';
 }
 
 // ==================== 自动保存系统 ====================
@@ -472,6 +494,7 @@ function initSaveSystem() {
     }
     
     console.groupEnd();
+    bindSaveButtons();
 }
 
 // ==================== 工具函数 ====================
@@ -498,22 +521,39 @@ function deepClone(obj) {
  * 绑定按钮事件
  */
 function bindSaveButtons() {
-    document.getElementById('quick-save-btn')?.addEventListener('click', () => {
-        console.log('快速保存触发');
+    // 避免重复绑定
+    if (areSaveButtonsBound) return;
+    
+    console.log("正在绑定存档按钮...");
+    // 获取按钮元素
+    const quickSaveBtn = document.getElementById('quick-save-btn');
+    const quickLoadBtn = document.getElementById('quick-load-btn');
+    const manageSavesBtn = document.getElementById('manage-saves-btn');
+    // 检查按钮是否存在
+    if (!quickSaveBtn || !quickLoadBtn || !manageSavesBtn) {
+        console.error("错误：存档按钮未找到！1秒后重试...");
+        setTimeout(bindSaveButtons, 1000); // 1秒后重试
+        return;
+    }
+    // 绑定快速保存
+    quickSaveBtn.addEventListener('click', () => {
+        console.log("快速保存触发");
         saveGame(player.currentSlot);
     });
-
-    document.getElementById('quick-load-btn')?.addEventListener('click', () => {
-        console.log('快速加载触发');
+    // 绑定快速读档
+    quickLoadBtn.addEventListener('click', () => {
+        console.log("快速读档触发");
         if (loadGame(player.currentSlot)) {
-            updateAllUI(); // 假设存在的UI更新函数
+            updateAllUI(); // 更新游戏UI
         }
     });
-
-    document.getElementById('manage-saves-btn')?.addEventListener('click', () => {
-        console.log('打开存档管理器');
+    // 绑定存档管理器
+    manageSavesBtn.addEventListener('click', () => {
+        console.log("打开存档管理器");
         showSaveManager();
     });
+    areSaveButtonsBound = true;
+    console.log("存档按钮绑定成功！");
 }
 
 /**
@@ -529,134 +569,128 @@ function bindSaveButtons() {
  * 2. 完善所有交互流程
  * 3. 增强错误处理
  */
-function bindSlotEvents() {
-    const modal = document.getElementById('save-modal');
-    if (!modal) {
-        console.error('存档模态框未找到，请检查HTML结构');
+function bindGlobalSaveEvents() {
+    if (!saveModal) {
+        console.error('无法绑定事件：存档模态框未初始化');
         return;
     }
-
-    // ============= 清除旧事件监听 =============
-    const slotsContainer = document.getElementById('save-slots');
-    const newContainer = slotsContainer.cloneNode(true);
-    slotsContainer.parentNode.replaceChild(newContainer, slotsContainer);
-
-    // ============= 状态锁定 =============
-    let isProcessing = false;
-
-    // ============= 存档/读档/删除 =============
-    document.getElementById('save-slots').addEventListener('click', (e) => {
-        const btn = e.target.closest('.action-button');
-        if (!btn || isProcessing) return;
-
-        const slot = btn.dataset.slot;
-        if (!slot) return;
-
-        // 锁定处理
-        isProcessing = true;
-        e.stopImmediatePropagation();
-
-        try {
-            // 读档操作
-            if (btn.classList.contains('load-slot')) {
-                if (confirm(`加载存档位 ${slot.replace('slot', '')} 将覆盖当前进度，确定继续？`)) {
-                    if (loadGame(slot)) {
-                        modal.style.display = 'none';
-                        updateAllUI();
-                        alert('存档加载成功！');
-                    }
-                }
-            }
-            // 存档操作
-            else if (btn.classList.contains('save-slot')) {
-                // 阻断系统
-                window.__blockAllAutoSaves = true;
-                clearTimeout(window.__blockTimer);
-                window.__blockTimer = setTimeout(() => {
-                    window.__blockAllAutoSaves = false;
-                }, 3000);
-
-                if (saveGame(slot)) {
-                    // 延迟刷新避免重复绑定
-                    setTimeout(() => {
-                        showSaveManager();
-                        //alert(`成功保存到存档位 ${slot.replace('slot', '')}`);
-                    }, 100);
-                }
-            }
-            // 删除操作
-            else if (btn.classList.contains('delete-slot')) {
-                if (confirm(`确定永久删除存档位 ${slot.replace('slot', '')}？`)) {
-                    deleteSave(slot);
-                    showSaveManager();
-                }
-            }
-        } catch (error) {
-            console.error('操作失败:', error);
-            alert('操作失败，请查看控制台');
-        } finally {
-            isProcessing = false;
+    // 点击事件委托
+    document.addEventListener('click', (e) => {
+        // 导出按钮
+        if (e.target.closest('#export-save-btn')) {
+            handleExportSave();
+            return;
         }
-    });
-
-    // ============= 导入/导出 =============
-    document.getElementById('export-save-btn')?.addEventListener('click', () => {
-        if (isProcessing) return;
-        isProcessing = true;
-
-        try {
-            const code = exportSave();
-            if (code) {
-                navigator.clipboard.writeText(code)
-                    .then(() => alert('存档代码已复制！'))
-                    .catch(() => prompt('请手动复制：', code));
-            }
-        } catch (e) {
-            console.error('导出失败:', e);
-            alert('导出失败');
-        } finally {
-            isProcessing = false;
-        }
-    });
-
-    document.getElementById('import-save-btn')?.addEventListener('click', () => {
-        if (isProcessing) return;
         
-        const code = prompt('粘贴存档代码：');
-        if (!code) return;
-
-        isProcessing = true;
-        try {
-            if (importSave(code)) {
-                setTimeout(() => showSaveManager(), 100);
-                alert('导入成功！');
-            }
-        } catch (e) {
-            console.error('导入失败:', e);
-            alert('导入失败');
-        } finally {
-            isProcessing = false;
+        // 导入按钮
+        if (e.target.closest('#import-save-btn')) {
+            handleImportSave();
+            return;
+        }
+        
+        // 存档操作按钮
+        const slotBtn = e.target.closest('.load-slot, .save-slot, .delete-slot');
+        if (slotBtn) {
+            handleSlotAction(slotBtn);
+            return;
+        }
+        
+        // 关闭操作
+        if (e.target.closest('.close') || e.target === saveModal) {
+            saveModal.style.display = 'none';
         }
     });
-
-    // ============= 模态框控制 =============
-    // 关闭按钮
-    modal.querySelector('.close').addEventListener('click', () => {
-        modal.style.display = 'none';
-    });
-
-    // 点击外部关闭
-    window.addEventListener('click', (e) => {
-        if (e.target === modal) modal.style.display = 'none';
-    });
-
     // ESC键关闭
     document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape' && modal.style.display === 'block') {
-            modal.style.display = 'none';
+        if (e.key === 'Escape' && saveModal.style.display === 'block') {
+            saveModal.style.display = 'none';
         }
     });
 }
+
+// ============= 独立处理函数 =============
+function handleSlotAction(btn) {
+    if (isProcessing) return;
+    
+    const slot = btn.dataset.slot;
+    if (!slot) return;
+    isProcessing = true;
+    
+    try {
+        if (btn.classList.contains('load-slot')) {
+            if (confirm(`加载存档位 ${slot.replace('slot', '')} 将覆盖当前进度，确定继续？`)) {
+                if (loadGame(slot)) {
+                    saveModal.style.display = 'none';
+                    updateAllUI();
+                    alert('存档加载成功！');
+                }
+            }
+        }
+        else if (btn.classList.contains('save-slot')) {
+            window.__blockAllAutoSaves = true;
+            clearTimeout(window.__blockTimer);
+            window.__blockTimer = setTimeout(() => {
+                window.__blockAllAutoSaves = false;
+            }, 3000);
+            if (saveGame(slot)) {
+                setTimeout(() => showSaveManager(), 100);
+            }
+        }
+        else if (btn.classList.contains('delete-slot')) {
+            if (confirm(`确定永久删除存档位 ${slot.replace('slot', '')}？`)) {
+                deleteSave(slot);
+                showSaveManager();
+            }
+        }
+    } catch (error) {
+        console.error('操作失败:', error);
+        alert('操作失败，请查看控制台');
+    } finally {
+        isProcessing = false;
+    }
+}
+
+function handleExportSave() {
+    if (isProcessing) return;
+    isProcessing = true;
+    
+    try {
+        const code = exportSave();
+        if (code) {
+            navigator.clipboard.writeText(code)
+                .then(() => alert('存档代码已复制！'))
+                .catch(() => prompt('请手动复制：', code));
+        }
+    } catch (e) {
+        console.error('导出失败:', e);
+        alert('导出失败');
+    } finally {
+        isProcessing = false;
+    }
+}
+
+function handleImportSave() {
+    if (isProcessing) return;
+    isProcessing = true;
+    
+    const code = prompt('粘贴存档代码：');
+    if (!code) {
+        isProcessing = false;
+        return;
+    }
+    try {
+        if (importSave(code)) {
+            setTimeout(() => showSaveManager(), 100);
+            alert('导入成功！');
+        }
+    } catch (e) {
+        console.error('导入失败:', e);
+        alert('导入失败');
+    } finally {
+        isProcessing = false;
+    }
+}
+
 
 // ==================== 首次运行检查 ====================
 
@@ -690,12 +724,14 @@ window.initSaveSystem = initSaveSystem;
 // DOM加载完成后初始化
 document.addEventListener('DOMContentLoaded', () => {
     if (typeof player !== 'undefined') {
+        bindSaveButtons();
         initSaveSystem();
     } else {
         console.error('存档系统初始化失败：player对象未定义');
         // 延迟重试
         setTimeout(() => {
             if (typeof player !== 'undefined') {
+                bindSaveButtons();
                 initSaveSystem();
             }
         }, 1000);

@@ -36,7 +36,7 @@ function enhanceWeapon(index) {
         // 强化成功
         weapon.enhanceLevel = enhanceLevel + 1;
         weapon.originalName = weapon.originalName || weapon.name;
-        weapon.name = `${weapon.originalName}+${weapon.enhanceLevel}`;
+        weapon.name = `${weapon.originalName} +${weapon.enhanceLevel}`;
         const bonus = Math.floor(weapon.rarity * (enhanceLevel + 1));
         
         if (weapon.type === '盾牌') {
@@ -104,15 +104,15 @@ function updateEnhanceInfo(index) {
 
     const weapon = player.inventory[index];
     const enhanceLevel = weapon.enhanceLevel || 0;
-    const maxLevel = 10;
-    const baseCost = 50;
-    const costMultiplier = 20;
+    const maxLevel = 12;
+    const baseCost = 100;
+    const costMultiplier = 18;
     const baseSuccessRate = 0.95;
-    const decreaseRate = 0.05;
-    const minSuccessRate = 0.3;
+    const decreaseRate = 0.04;
+    const minSuccessRate = 0.1;
 
     const displayName = enhanceLevel > 0 ? 
-        `${weapon.originalName || weapon.name}+${weapon.enhanceLevel}` : 
+        `${weapon.originalName || weapon.name} +${weapon.enhanceLevel}` : 
         weapon.originalName || weapon.name;
 
     if (enhanceLevel >= maxLevel) {
@@ -130,7 +130,10 @@ function updateEnhanceInfo(index) {
         baseSuccessRate * Math.pow(1 - decreaseRate, enhanceLevel)
     );
     const successRatePercent = (successRate * 100).toFixed(1);
-    const bonus = Math.floor(weapon.rarity * (enhanceLevel + 1));
+    //const bonus = Math.floor(weapon.rarity * (enhanceLevel + 1));
+
+    // 新版（分段加速增长）:
+    const bonus = Math.floor(weapon.rarity * (enhanceLevel <= 5 ? 1 : enhanceLevel <= 10 ? 1.5 : 2) * (enhanceLevel + 1));
     const statName = weapon.type === '盾牌' ? '防御力' : '攻击力';
 
     infoDiv.innerHTML = `
