@@ -2,33 +2,42 @@ name: Auto Update Version and Deploy
 
 on:
   push:
-    branches: [ "main" ]  # 只在 main 分支推送时触发
+    branches: [ "main" ]
 
 jobs:
   deploy:
-    runs-on: ubuntu-latest  # 使用 GitHub 的 Ubuntu 虚拟机
+    runs-on: ubuntu-latest
 
     steps:
-      # 步骤1：检出代码
-      - name: Checkout code
-        uses: actions/checkout@v4
+      # 步骤1：检出代码（必须使用持久令牌）
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true  # 关键配置！
+          fetch-depth: 0
 
-      # 步骤2：自动更新 JS/CSS 版本号（替换为 Git 短哈希）
+      # 步骤2：配置 Git 用户信息（必须）
+      - name: Setup Git
+        run: |
+          git config --global user.name "xialongxl"
+          git config --global user.email "xialong2001@gmail.com"
+
+      # 步骤3：你的版本替换逻辑
       - name: Update version in HTML
         run: |
-          # 获取当前 Git 短哈希（如 abc1234）
           GIT_HASH=$(git rev-parse --short HEAD)
-          
-          # 用 sed 替换 index.html 中的所有 ?v=xxx 为当前哈希
-          sed -i "s/\(src=\"[^\"]*\.js\)?v=[^\"]*/\1?v=$GIT_HASH/g" index.html
-          sed -i "s/\(href=\"[^\"]*\.css\)?v=[^\"]*/\1?v=$GIT_HASH/g" index.html
-          
-          echo "✅ 已自动更新版本号为: $GIT_HASH"
+          sed -i "s|\(src=\"[^\"]*\.js\)?v=[^\"]*|\1?v=$GIT_HASH|g" index.html
+          sed -i "s|\(href=\"[^\"]*\.css\)?v=[^\"]*|\1?v=$GIT_HASH|g" index.html
 
-      # 步骤3：部署到 GitHub Pages
+      # 步骤4：提交更改（如果需要）
+      - name: Commit changes
+        run: |
+          git add index.html
+          git commit -m "Auto update version to $GIT_HASH" || echo "No changes to commit"
+          
+      # 步骤5：部署到 GitHub Pages
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}  # GitHub 自动提供的 token
-          publish_dir: ./           # 部署整个项目
-          keep_files: false         # 清理旧文件
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./
+          force_orphan: true  # 确保干净部署
