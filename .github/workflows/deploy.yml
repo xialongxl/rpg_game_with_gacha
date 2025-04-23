@@ -2,47 +2,52 @@ name: Auto Update Version and Deploy
 
 on:
   push:
-    branches: [ "main" ]  # ⚠️ 确保这是你的实际分支名（可能是main/master）
+    branches: [ "main" ]
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
     permissions:
-      contents: write  # 🚨 必须保留（写入权限）
-      pages: write     # 🚨 必须保留（Pages部署权限）
-      id-token: write  # 🚨 必须保留（认证权限）
+      contents: write
+      pages: write
+      id-token: write
 
     steps:
-      # 步骤1：检出代码
       - uses: actions/checkout@v4
         with:
-          persist-credentials: true  # 🚨 必须为true（否则无法推送）
-          fetch-depth: 0            # ⚠️ 建议保留（获取完整git历史）
+          persist-credentials: true
+          fetch-depth: 0
 
-      # 步骤2：配置Git用户信息
       - name: Setup Git
         run: |
-          git config --global user.name "xialongxl"  # 🚨 必须填写（任意非空字符串）
-          git config --global user.email "xialong2001@gmail.com"  # 🚨 必须填写（格式正确邮箱）
+          git config --global user.name "xialongxl"
+          git config --global user.email "xialong2001@gmail.com"
 
-      # 步骤3：版本替换逻辑
-      - name: Update version in HTML
+      - name: Generate timestamp version
         run: |
-          GIT_HASH=$(git rev-parse --short HEAD)
-          # 🚨 检查以下sed命令是否匹配你的HTML文件格式：
-          # 如果用的是单引号（src='...'），需要调整正则表达式
-          sed -i "s/\(src=['\"][^'\"]*\.js\)?v=[^'\"]*/\1?v=$GIT_HASH/g" index.html
-          sed -i "s/\(href=['\"][^'\"]*\.css\)?v=[^'\"]*/\1?v=$GIT_HASH/g" index.html
+          # 生成毫秒级时间戳 (格式: 20240315123045999)
+          VERSION=$(date +%Y%m%d%H%M%S%3N)
+          echo "新版本号: $VERSION"
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
 
-      # 步骤4：提交更改
-      - name: Commit and Push changes
+      - name: Update files
         run: |
-          git add index.html
-          # 🚨 如果使用保护分支，可能需要强制推送（加-f）
-          git diff --staged --quiet || git commit -m "Auto update version to $(git rev-parse --short HEAD)"
-          git push origin main  # ⚠️ 确保分支名与on.push.branches一致
+          # 1. 更新index.html
+          sed -i "s/\(src=['\"][^'\"]*\.js\)?v=[^'\"]*/\1?v=$VERSION/g" index.html
+          sed -i "s/\(href=['\"][^'\"]*\.css\)?v=[^'\"]*/\1?v=$VERSION/g" index.html
 
-      # 步骤5：部署到GitHub Pages
+          # 2. 更新rpgCore.js (数字格式)
+          sed -i "s/\(version:\)[0-9.]\+/\1$VERSION/g" rpgCore.js
+
+          # 3. 更新saveSystem.js (字符串格式)
+          sed -i "s/\(const VERSION = '\)[^']*\('\)/\1$VERSION\2/g" saveSystem.js
+
+      - name: Commit changes
+        run: |
+          git add index.html rpgCore.js saveSystem.js
+          git diff --staged --quiet || git commit -m "Auto update version to $(date +%Y%m%d%H%M%S%3N)"
+          git push origin main
+
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
