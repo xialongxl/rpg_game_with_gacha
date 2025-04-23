@@ -8,7 +8,7 @@
 const SAVE_PREFIX = 'rpg_game_save_';
 const AUTO_SAVE_SLOT = 'slot0';
 const MANUAL_SLOTS = ['slot1', 'slot2', 'slot3'];
-const VERSION = '20250424000039217';
+const VERSION = '20250424001650780';
 
 // ==================== 全局变量 ====================
 let isSaveManagerInitialized = false;

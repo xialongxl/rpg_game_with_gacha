@@ -17,7 +17,7 @@ let player = {
     inventoryCapacity: 9999,
     equipment: { mainHand: null, offHand: null, accessory: null },
     currentSlot: 'slot0',
-    version:20250424000039217
+    version:20250424001650780
 };
 
 // 配置表：星级对应的减伤基数（可自由调整）
